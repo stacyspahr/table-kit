@@ -7,7 +7,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { classify, createQueue } from './queue'
+import { classify, createQueue } from './queue.js'
 
 class FakeError extends Error {
   status: number

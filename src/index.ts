@@ -6,20 +6,20 @@
  * dependency arrow only ever points this way.
  */
 
-import { createActions, type Actions } from './actions'
-import type { TableKitConfig } from './config'
-import { createClients, type Clients } from './pb'
-import { createQueue, type Queue } from './queue'
-import type { GameRec, SubmissionRec } from './state'
+import { createActions, type Actions } from './actions.js'
+import type { TableKitConfig } from './config.js'
+import { createClients, type Clients } from './pb.js'
+import { createQueue, type Queue } from './queue.js'
+import type { GameRec, SubmissionRec } from './state.js'
 
-export * from './config'
-export * from './session'
-export * from './state'
-export * from './queue'
-export * from './pwa'
-export * from './version'
-export type { Clients } from './pb'
-export type { Actions } from './actions'
+export * from './config.js'
+export * from './session.js'
+export * from './state.js'
+export * from './queue.js'
+export * from './pwa.js'
+export * from './version.js'
+export type { Clients } from './pb.js'
+export type { Actions } from './actions.js'
 
 export interface TableKit<G extends GameRec, S extends SubmissionRec>
   extends Clients,

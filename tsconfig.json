@@ -2,8 +2,13 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    // NodeNext, not bundler, on purpose: it makes tsc REJECT extensionless
+    // relative imports. tsc emits imports as written, so `from './state'`
+    // compiles fine under bundler resolution and then fails at runtime in Node
+    // — which is where the version.json prebuild script runs. Caught by a real
+    // install rather than by the build; this setting stops it recurring.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "types": ["node"],
     "declaration": true,
     "declarationMap": true,

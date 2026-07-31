@@ -30,7 +30,7 @@ import {
   type RoundRec,
   type SubmissionRec,
   type Tally,
-} from './state'
+} from './state.js'
 
 function player(id: string, seat: number, joined = 1): PlayerRec {
   return {

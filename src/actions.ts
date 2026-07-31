@@ -6,9 +6,9 @@
  */
 
 import type PocketBase from 'pocketbase'
-import type { TableKitConfig } from './config'
-import type { Queue } from './queue'
-import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './state'
+import type { TableKitConfig } from './config.js'
+import type { Queue } from './queue.js'
+import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './state.js'
 
 export interface Actions<G extends GameRec, S extends SubmissionRec> {
   loadState(gameId: string): Promise<GameState<G, S>>

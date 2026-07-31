@@ -17,7 +17,7 @@
  * high-wins hook.
  */
 
-import type { Winner } from './config'
+import type { Winner } from './config.js'
 
 export interface GameRec {
   id: string

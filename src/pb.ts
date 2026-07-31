@@ -6,7 +6,7 @@
  */
 
 import PocketBase, { LocalAuthStore } from 'pocketbase'
-import { DEFAULT_PB_URL, type TableKitConfig } from './config'
+import { DEFAULT_PB_URL, type TableKitConfig } from './config.js'
 
 export interface Clients {
   /** Platform user. Hosts only. */
