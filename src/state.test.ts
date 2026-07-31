@@ -277,3 +277,64 @@ describe('tieAtFront', () => {
     expect(tieAtFront(s, 'highest', 66)).toEqual([])
   })
 })
+
+/**
+ * Drafts. Added in v0.2.0 with autosave, and every one of these was a real bug
+ * in the first cut: a half-counted pile read as an answer.
+ */
+describe('drafts are not answers', () => {
+  const base = () => ({
+    game: { id: 'g', join_token: 't', status: 'active' as const, host_user: 'u', created: '' },
+    players: [
+      { id: 'p1', game: 'g', display_name: 'Ada', seat_order: 0, device_id: 'a', roster_entry: '', joined_round: 1 },
+      { id: 'p2', game: 'g', display_name: 'Bob', seat_order: 1, device_id: 'b', roster_entry: '', joined_round: 1 },
+    ],
+    rounds: [{ id: 'r1', game: 'g', round_number: 1, status: 'open' as const }],
+    submissions: [],
+    current: { id: 'r1', game: 'g', round_number: 1, status: 'open' as const },
+  })
+
+  const sub = (id: string, player: string, score: number, status?: 'draft' | 'final') => ({
+    id, round: 'r1', player, computed_score: score,
+    submitted_by: player, client_uuid: '', created: '', ...(status ? { status } : {}),
+  })
+
+  it('still waits on a player who is only part-way through counting', () => {
+    // The bug this exists for: Ada picks up her pile, taps two cards, and the
+    // autosave drops her out of waitingOn. The table is told nobody is
+    // outstanding while the round never advances, with no name to explain it.
+    const state = { ...base(), submissions: [sub('s1', 'p1', 4, 'draft')] }
+    expect(waitingOn(state).map((p) => p.id)).toEqual(['p1', 'p2'])
+    expect(submittedThisRound(state).has('p1')).toBe(false)
+  })
+
+  it('stops waiting once that draft is handed in', () => {
+    const state = { ...base(), submissions: [sub('s1', 'p1', 4, 'final')] }
+    expect(waitingOn(state).map((p) => p.id)).toEqual(['p2'])
+  })
+
+  it('keeps a half-counted pile off the totals and out of the goal check', () => {
+    const state = { ...base(), submissions: [sub('s1', 'p1', 40, 'draft')] }
+    expect(totals(state).get('p1')).toBe(0)
+    expect(goalReached(state, 30)).toBe(false)
+  })
+
+  it('treats a submission with no status at all as final', () => {
+    // Flip 7 has no drafts and never sets the field. It must not suddenly stop
+    // counting when it migrates onto the kit.
+    const state = { ...base(), submissions: [sub('s1', 'p1', 12)] }
+    expect(waitingOn(state).map((p) => p.id)).toEqual(['p2'])
+    expect(totals(state).get('p1')).toBe(12)
+  })
+
+  it('leaves a draft out of the banked board', () => {
+    const state = {
+      ...base(),
+      rounds: [{ id: 'r1', game: 'g', round_number: 1, status: 'closed' as const }],
+      current: null,
+      submissions: [sub('s1', 'p1', 9, 'draft'), sub('s2', 'p2', 3, 'final')],
+    }
+    const board = standings(state, 'lowest')
+    expect(board.map((r) => [r.player.id, r.score])).toEqual([['p1', 0], ['p2', 3]])
+  })
+})

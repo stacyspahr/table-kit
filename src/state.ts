@@ -51,6 +51,12 @@ export interface SubmissionRec {
   round: string
   player: string
   computed_score: number
+  /**
+   * `draft` is an autosave of a pile somebody is still counting — a safety net,
+   * not an answer. Absent means final, so a game with no drafts (Flip 7) needs
+   * no changes.
+   */
+  status?: 'draft' | 'final'
   /** Who physically entered it. Differs from `player` on a proxied seat. */
   submitted_by: string
   client_uuid: string
@@ -99,12 +105,16 @@ export function sumScores<S extends SubmissionRec>(
   return out
 }
 
+/** Everything that counts as an answer — drafts are half-counted piles. */
+const scored = <S extends SubmissionRec>(subs: S[]): S[] =>
+  subs.filter((s) => s.status !== 'draft')
+
 /** Running total per player id, including any round still open. */
 export function totals<G extends GameRec, S extends SubmissionRec>(
   state: GameState<G, S>,
   tally: Tally<S> = sumScores,
 ): Map<string, number> {
-  return tally(state.players, state.submissions)
+  return tally(state.players, scored(state.submissions))
 }
 
 /**
@@ -122,17 +132,30 @@ export function committedTotals<G extends GameRec, S extends SubmissionRec>(
   const closed = new Set(state.rounds.filter((r) => r.status === 'closed').map((r) => r.id))
   return tally(
     state.players,
-    state.submissions.filter((s) => closed.has(s.round)),
+    scored(state.submissions).filter((s) => closed.has(s.round)),
   )
 }
 
-/** Player ids who have already handed in a score for the current round. */
+/**
+ * Player ids who have already handed in a score for the current round.
+ *
+ * ⚠️ Drafts do NOT count, and the distinction is load-bearing. A draft means
+ * somebody picked up their pile and started tapping — the opposite of done.
+ * Counting one here drops them out of `waitingOn`, so the table is told nobody
+ * is outstanding while the round sits open forever, with no name on screen to
+ * explain why. The server-side round hook applies the same rule; if these two
+ * disagree the game stalls.
+ */
 export function submittedThisRound<G extends GameRec, S extends SubmissionRec>(
   state: GameState<G, S>,
 ): Set<string> {
   const current = state.current
   if (!current) return new Set()
-  return new Set(state.submissions.filter((s) => s.round === current.id).map((s) => s.player))
+  return new Set(
+    state.submissions
+      .filter((s) => s.round === current.id && s.status !== 'draft')
+      .map((s) => s.player),
+  )
 }
 
 /**

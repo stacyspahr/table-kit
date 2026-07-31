@@ -7,6 +7,20 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.2.1
+
+Fixes a bug introduced with drafts in v0.2.0. Take this if you are on 0.2.0.
+
+- Fixed: `waitingOn` counted a DRAFT as handed in, so a player who picked up
+  their pile and started tapping vanished from the list. The table was told
+  nobody was outstanding while the round sat open forever — the server-side
+  round hook applies the stricter rule, so the two disagreed and the game
+  stalled with no name on screen to explain why.
+- Fixed: a draft's running score counted toward `totals`, `goalReached` and the
+  board. A half-counted pile could end the game.
+- Added: `status?: 'draft' | 'final'` on `SubmissionRec`. Absent still means
+  final, so a game that never writes drafts (Flip 7) is unaffected.
+
 ## v0.2.0
 
 Draft autosave — the thing that turns "your phone died mid-round" from a lost
