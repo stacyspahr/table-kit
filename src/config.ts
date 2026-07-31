@@ -32,8 +32,14 @@ export interface TableKitConfig {
    * low-wins game reuses a high-wins hook.
    */
   winner: Winner
-  /** Defaults to the shared platform PocketBase. */
-  pbUrl?: string
+  /**
+   * Backend origin. **Required, and never defaulted.**
+   *
+   * The platform convention is that frontends read this from `VITE_PB_URL` and
+   * never hardcode it, so the hostname can change with a one-line edit. A
+   * default here would also bake a private backend address into a public
+   * package, which the Flip 7 spec explicitly rules out — the PocketBase
+   * hostname is an API endpoint and is never surfaced.
+   */
+  pbUrl: string
 }
-
-export const DEFAULT_PB_URL = 'https://spahrfamily.duckdns.org'

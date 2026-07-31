@@ -6,7 +6,7 @@
  */
 
 import PocketBase, { LocalAuthStore } from 'pocketbase'
-import { DEFAULT_PB_URL, type TableKitConfig } from './config.js'
+import type { TableKitConfig } from './config.js'
 
 export interface Clients {
   /** Platform user. Hosts only. */
@@ -19,7 +19,7 @@ export interface Clients {
 }
 
 export function createClients(config: TableKitConfig): Clients {
-  const url = config.pbUrl ?? DEFAULT_PB_URL
+  const url = config.pbUrl
 
   /**
    * TWO clients, two auth stores — deliberately.

@@ -31,6 +31,7 @@ import { createKit } from 'table-kit'
 
 export const kit = createKit({
   appKey: 'heat',
+  pbUrl: import.meta.env.VITE_PB_URL,
   collections: {
     games: 'heat_games',
     players: 'heat_players',
@@ -44,6 +45,10 @@ export const kit = createKit({
 `appKey` drives the storage key prefix, both auth store names, and the
 `/api/<appKey>/…` endpoints. `winner` decides which end of the leaderboard wins
 — and *only* that; see below.
+
+`pbUrl` is **required and never defaulted.** Read it from `VITE_PB_URL` per the
+platform convention. The kit ships no backend address, deliberately — this is a
+public package and the PocketBase hostname is not something to publish.
 
 ### Submitting
 
