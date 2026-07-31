@@ -30,10 +30,28 @@
  * work, but the intent it carried is satisfied, which is what the caller cares
  * about.
  *
+ * ── Two op modes ──────────────────────────────────────────────────────────
+ * `enqueue` is a plain create: one row, once, never touched again.
+ *
+ * `upsert` is create-or-replace, and exists because a row with a lifecycle —
+ * a draft that autosaves while someone taps, then turns final — cannot be
+ * expressed as a create. The second create collides with whatever uniqueness
+ * constraint made it one row in the first place, and gets classified terminal.
+ *
+ * The caller supplies the key rather than the queue minting one, and the
+ * intended key is the thing that is already unique about the row: a seat's
+ * entry for a round is keyed on (round, player). Two consequences fall out of
+ * that, both wanted:
+ *
+ *   • Forty autosaves are ONE queued write, because each replaces the last.
+ *   • If somebody proxies your seat while you are offline, your write lands on
+ *     top of theirs when you reconnect rather than dying as a conflict. That is
+ *     the specified behaviour — last write wins, and `submitted_by` records who.
+ *
  * ── What is deliberately NOT queued ───────────────────────────────────────
- * Only creates. Closing a round, opening the next one, and ending a game are
- * server-side decisions (see `actions.ts`) precisely so two phones cannot race
- * them; queueing a stale round-close and replaying it ten minutes later would
+ * Closing a round, opening the next one, and ending a game are server-side
+ * decisions (see `actions.ts`) precisely so two phones cannot race them;
+ * queueing a stale round-close and replaying it ten minutes later would
  * reintroduce exactly the race the hook exists to prevent.
  */
 
@@ -46,6 +64,12 @@ export interface QueuedOp {
   data: Record<string, unknown>
   enqueuedAt: number
   attempts: number
+  /**
+   * `create` writes the row once and treats a key collision as already-done.
+   * `upsert` owns the row and writes over it. Absent means `create`, so ops
+   * persisted by an older build still load and behave as they did.
+   */
+  mode?: 'create' | 'upsert'
   /** Set once an attempt fails in a way worth reporting. */
   lastError?: string
 }
@@ -99,7 +123,13 @@ type Verdict =
   | { kind: 'satisfied' }
   | { kind: 'terminal'; reason: string }
 
-export function classify(err: unknown): Verdict {
+/** True when the write bounced because a row with this client_uuid already exists. */
+export function isOwnKeyConflict(err: unknown): boolean {
+  const e = err as { response?: { data?: Record<string, { code?: string }> } }
+  return Boolean(e?.response?.data?.client_uuid)
+}
+
+export function classify(err: unknown, mode: 'create' | 'upsert' = 'create'): Verdict {
   const e = err as { status?: number; response?: { data?: Record<string, { code?: string }> } }
   const status = typeof e?.status === 'number' ? e.status : undefined
 
@@ -110,9 +140,17 @@ export function classify(err: unknown): Verdict {
 
   const fields = e?.response?.data ?? {}
 
-  // Our own key bounced: this exact operation already landed. The retry failed;
-  // the intent succeeded. That is a success.
-  if (fields.client_uuid) return { kind: 'satisfied' }
+  // Our own key bounced: the row exists.
+  //
+  // For a create that is the end of the story — the retry failed, the intent
+  // succeeded, and treating it as success is the whole idempotency trick. For
+  // an upsert it is the OPPOSITE: the row existing is the normal case and the
+  // point is to go write over it, so the drain handles it rather than stopping
+  // here. Collapsing these two would silently drop every autosave after the
+  // first.
+  if (fields.client_uuid) {
+    return mode === 'upsert' ? { kind: 'retry' } : { kind: 'satisfied' }
+  }
 
   // Any other uniqueness failure is a real conflict — almost always a seat that
   // someone else entered while this phone was offline.
@@ -139,6 +177,18 @@ export function classify(err: unknown): Verdict {
 export interface Queue {
   /** Persist a write and return its idempotency key. Never throws, never awaits the network. */
   enqueue(collection: string, data: Record<string, unknown>): string
+  /**
+   * Create-or-replace a row the caller owns, under a key the CALLER chooses.
+   *
+   * Calling it again with the same key replaces the queued write instead of
+   * appending one, so an entry that autosaves every couple of seconds costs a
+   * single request when the network comes back — not one per tap.
+   *
+   * Use the row's natural uniqueness for the key (for a seat's entry in a
+   * round, that is round id + player id). Never a random uuid: a fresh key each
+   * call is just `enqueue` with extra steps, and the second one collides.
+   */
+  upsert(collection: string, key: string, data: Record<string, unknown>): void
   /** Queued rows for one collection, so local state can show them as already done. */
   pendingIn(collection: string): QueuedOp[]
   /** Try to drain now. Safe to call at any time; concurrent calls collapse. */
@@ -164,6 +214,21 @@ export function createQueue(opts: {
   let ops: QueuedOp[] = []
   let dead: DeadOp[] = []
   /**
+   * client_uuid → record id, for rows an upsert has already created.
+   *
+   * Saves a lookup on every subsequent write, and survives a reload so a phone
+   * that comes back still knows which row is its own. Purely a cache: a miss
+   * costs one extra request, never correctness.
+   */
+  let ids: Record<string, string> = {}
+  /**
+   * The key of the op currently in flight, if any — always `ops[0]`.
+   *
+   * Coalescing must never touch it: its request already captured the old data,
+   * so replacing it in place would send the stale copy and drop the newer one.
+   */
+  let sending: string | null = null
+  /**
    * The drain currently running, if any.
    *
    * Held as a promise rather than a boolean so that `flush()` called during a
@@ -186,18 +251,24 @@ export function createQueue(opts: {
     try {
       const raw = localStorage.getItem(KEY)
       if (!raw) return
-      const parsed = JSON.parse(raw) as { ops?: QueuedOp[]; dead?: DeadOp[] }
+      const parsed = JSON.parse(raw) as {
+        ops?: QueuedOp[]
+        dead?: DeadOp[]
+        ids?: Record<string, string>
+      }
       ops = Array.isArray(parsed.ops) ? parsed.ops : []
       dead = Array.isArray(parsed.dead) ? parsed.dead : []
+      ids = parsed.ids && typeof parsed.ids === 'object' ? parsed.ids : {}
     } catch {
       ops = []
       dead = []
+      ids = {}
     }
   }
 
   function save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ ops, dead }))
+      localStorage.setItem(KEY, JSON.stringify({ ops, dead, ids }))
     } catch {
       // Full or blocked. The in-memory queue is still live.
     }
@@ -248,6 +319,46 @@ export function createQueue(opts: {
     return inFlight
   }
 
+  /**
+   * One attempt at one op.
+   *
+   * A create is a create. An upsert prefers to update a row it already knows
+   * about, falls back to creating, and — if the create bounces because the row
+   * exists after all — looks the row up by its key and writes over it. That
+   * last path is the one that runs after a reload wiped the id cache, or when a
+   * proxy landed the row first.
+   */
+  async function send(op: QueuedOp): Promise<void> {
+    const coll = pb.collection(op.collection)
+    if ((op.mode ?? 'create') === 'create') {
+      await coll.create({ ...op.data, client_uuid: op.clientUuid })
+      return
+    }
+
+    const known = ids[op.clientUuid]
+    if (known) {
+      try {
+        await coll.update(known, op.data)
+        return
+      } catch (err) {
+        // Row deleted out from under us (a seat removed, a round wiped). Drop
+        // the stale id and fall through to create it again.
+        if ((err as { status?: number })?.status !== 404) throw err
+        delete ids[op.clientUuid]
+      }
+    }
+
+    try {
+      const made = await coll.create({ ...op.data, client_uuid: op.clientUuid })
+      ids[op.clientUuid] = made.id
+    } catch (err) {
+      if (!isOwnKeyConflict(err)) throw err
+      const existing = await coll.getFirstListItem(`client_uuid="${op.clientUuid}"`)
+      await coll.update(existing.id, op.data)
+      ids[op.clientUuid] = existing.id
+    }
+  }
+
   async function drain(): Promise<void> {
     emit()
 
@@ -266,12 +377,13 @@ export function createQueue(opts: {
         }
 
         try {
-          await pb.collection(op.collection).create({ ...op.data, client_uuid: op.clientUuid })
+          sending = op.clientUuid
+          await send(op)
           ops = ops.slice(1)
           save()
           emit()
         } catch (err) {
-          const verdict = classify(err)
+          const verdict = classify(err, op.mode ?? 'create')
 
           if (verdict.kind === 'satisfied') {
             ops = ops.slice(1)
@@ -296,6 +408,8 @@ export function createQueue(opts: {
           emit()
           schedule(backoffFor(op.attempts))
           return
+        } finally {
+          sending = null
         }
       }
     } finally {
@@ -312,6 +426,26 @@ export function createQueue(opts: {
     emit()
     void flush()
     return clientUuid
+  }
+
+  function upsert(collection: string, key: string, data: Record<string, unknown>): void {
+    // Coalesce onto the newest queued op with this key, skipping ops[0] while
+    // it is in flight. Newest rather than oldest so a burst of autosaves during
+    // a send collapses onto the one already waiting behind it.
+    const first = sending ? 1 : 0
+    for (let i = ops.length - 1; i >= first; i--) {
+      if (ops[i]!.clientUuid === key) {
+        ops = ops.map((o, j) => (j === i ? { ...o, data, enqueuedAt: now() } : o))
+        save()
+        emit()
+        void flush()
+        return
+      }
+    }
+    ops = [...ops, { clientUuid: key, collection, data, enqueuedAt: now(), attempts: 0, mode: 'upsert' }]
+    save()
+    emit()
+    void flush()
   }
 
   function pendingIn(collection: string): QueuedOp[] {
@@ -346,6 +480,7 @@ export function createQueue(opts: {
 
   return {
     enqueue,
+    upsert,
     pendingIn,
     flush,
     status,

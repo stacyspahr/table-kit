@@ -7,6 +7,32 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.2.0
+
+Draft autosave — the thing that turns "your phone died mid-round" from a lost
+pile into nothing at all. Nothing existing moved; `submit()` behaves exactly as
+it did.
+
+- Added: `queue.upsert(collection, key, data)` — create-or-replace under a key
+  the CALLER chooses, for rows with a lifecycle. A create cannot express a draft
+  that autosaves and then turns final: the second write collides with whatever
+  uniqueness made it one row, and the queue was right to call that terminal.
+- Added: `actions.save({ …, final })` — one call for both the autosave and the
+  hand-in, since they are the same write to the same row with a different
+  `status`. Keyed on `entryKey(round, player)`, so:
+    · forty autosaves cost ONE request when the network returns, not forty;
+    · a seat someone proxied while you were offline resolves as last-write-wins
+      when you reconnect, instead of dying as a conflict.
+- Added: `actions.entryKey(roundId, playerId)`, exposed so an app can find its
+  own queued write.
+- Changed: `classify(err, mode)` takes an optional second argument. Default is
+  unchanged, so existing calls behave identically — but note a duplicate
+  `client_uuid` now means "go update the row" for an upsert, where for a create
+  it still means "already landed, drop it". Reading those two the same way
+  would silently discard every autosave after the first.
+
+Queued ops written by v0.1.0 still load and still run as plain creates.
+
 ## v0.1.0
 
 First release. The spine, extracted from Flip 7 — enough for a second game to

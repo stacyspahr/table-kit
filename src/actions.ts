@@ -13,6 +13,17 @@ import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './s
 export interface Actions<G extends GameRec, S extends SubmissionRec> {
   loadState(gameId: string): Promise<GameState<G, S>>
   submit(opts: { round: RoundRec; player: PlayerRec; submittedBy: PlayerRec; payload: Record<string, unknown>; score: number }): string
+  save(opts: {
+    round: RoundRec
+    player: PlayerRec
+    submittedBy: PlayerRec
+    payload: Record<string, unknown>
+    score: number
+    /** `false` autosaves a draft; `true` hands the round in. */
+    final: boolean
+  }): void
+  /** The idempotency key for one seat's entry in one round. */
+  entryKey(roundId: string, playerId: string): string
   closeRound(state: GameState<G, S>): Promise<void>
   openNextRound(state: GameState<G, S>): Promise<void>
   rematch(game: G, players: PlayerRec[], freshToken: string, carry: Record<string, unknown>): Promise<G>
@@ -71,6 +82,49 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
       player: opts.player.id,
       submitted_by: opts.submittedBy.id,
       computed_score: opts.score,
+      ...opts.payload,
+      ...(proxied ? { proxy_reason: 'declared' } : {}),
+    })
+  }
+
+  /**
+   * The key for one seat's entry in one round.
+   *
+   * Derived, never random, and that is the whole design. It is the same value
+   * for every autosave and for the final hand-in, so all of them collapse into
+   * one queued write; and it matches the (round, player) uniqueness the schema
+   * already enforces, so a proxied seat resolves as last-write-wins instead of
+   * dying as a conflict.
+   */
+  function entryKey(roundId: string, playerId: string): string {
+    return `${roundId}:${playerId}`
+  }
+
+  /**
+   * Save a seat's entry — an autosaved draft, or the final hand-in.
+   *
+   * Both are the same write to the same row, differing only in `status`, which
+   * is why there is one function rather than two. Like `submit` it does not
+   * await the network: a dropout must never cost somebody the pile they just
+   * counted.
+   *
+   * Prefer this to `submit` for anything a player builds up over time.
+   */
+  function save(opts: {
+    round: RoundRec
+    player: PlayerRec
+    submittedBy: PlayerRec
+    payload: Record<string, unknown>
+    score: number
+    final: boolean
+  }): void {
+    const proxied = opts.submittedBy.id !== opts.player.id
+    queue.upsert(c.submissions, entryKey(opts.round.id, opts.player.id), {
+      round: opts.round.id,
+      player: opts.player.id,
+      submitted_by: opts.submittedBy.id,
+      computed_score: opts.score,
+      status: opts.final ? 'final' : 'draft',
       ...opts.payload,
       ...(proxied ? { proxy_reason: 'declared' } : {}),
     })
@@ -169,5 +223,5 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
     return next
   }
 
-  return { loadState, submit, closeRound, openNextRound, rematch }
+  return { loadState, submit, save, entryKey, closeRound, openNextRound, rematch }
 }
