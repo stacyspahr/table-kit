@@ -1,0 +1,40 @@
+{
+  "name": "table-kit",
+  "version": "0.1.0",
+  "description": "Shared game-night layer for Stacy's table-game scorers: seats, joining, sync, resilience, PWA.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./build": {
+      "types": "./dist/build.d.ts",
+      "default": "./dist/build.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "pocketbase": ">=0.26"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "jsdom": "^26.0.0",
+    "pocketbase": "^0.27.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": false
+}
