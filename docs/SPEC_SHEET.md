@@ -197,6 +197,24 @@ The labels say Today and Yesterday, **not Tonight**. A game played at 11:15am is
 not part of tonight, and the old wording made a morning game look misfiled. The
 bucket is still a night; only the label stopped claiming to know the hour.
 
+### Share card — `share.ts`
+
+A finished game as a 1080×1350 PNG, handed to the share sheet.
+
+| Export | Does |
+|---|---|
+| `renderCard(spec)` | Draws the card on a canvas → PNG `Blob` |
+| `shareCard(file, title)` | `navigator.share` with a download fallback |
+
+The kit lays it out and writes none of it — every string is in `CardSpec`,
+including the winner line, which is the game's own sentence.
+
+Every seat is drawn. On a full table, board rows tighten first, then awards
+are trimmed **from the top**: the list is ordered with the funny one last.
+
+⚠️ `renderCard` on mount, `shareCard` in the tap handler. iOS ends the user
+gesture at the first `await` and then refuses the sheet without an error.
+
 ### Seats — `roster.ts` (also `table-kit/roster`)
 
 The roster is permanent and never stops growing, which is right for lifetime

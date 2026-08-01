@@ -7,6 +7,29 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.9.0
+
+The share card, from `SHARE_CARD_SPEC.md`. One tap at the end of a game
+produces a branded picture of who won and what happened, handed to the share
+sheet.
+
+- Added: `renderCard(spec)` → a PNG `Blob`, and `shareCard(file, title)` → the
+  share sheet with a download fallback. Plain async functions: **the core still
+  has no React dependency**, and the button stays a game component.
+- The kit lays out the card and writes not one word of it. Wordmark, headline,
+  winner line, award titles and blurbs are all passed in, because "wins on 41
+  peppers — the fewest at the table" is Beat the Heat's sentence and inverting
+  it is the point of that game.
+- Every seat is drawn, phoneless ones included. When a full table will not fit,
+  board rows lose their air first, then awards are trimmed **from the top** —
+  the list is editorially ordered with the funny one last, so cutting from the
+  end takes the punchline.
+- `shareCard` treats a cancelled sheet as done rather than falling back to a
+  download. Closing the sheet is the user doing what they meant to.
+- ⚠️ Call `renderCard` on mount, never in a tap handler. iOS ends the gesture at
+  the first `await` and then silently refuses to open the sheet — the same trap
+  already documented in both apps' `InviteHost`.
+
 ## v0.8.0
 
 Two classes both games needed the moment their home screens were rebuilt.
