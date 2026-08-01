@@ -79,6 +79,12 @@
   --tk-card-pad: 1.25rem;
   --tk-card-gap: 1rem;
 
+  --tk-screen-max: 560px;
+  --tk-screen-pad-top: 1rem;
+  --tk-screen-pad-x: 1rem;
+  --tk-screen-pad-bottom: 1.5rem;
+  --tk-gap: 1rem;
+
   --tk-list-gap: 0.5rem;
   --tk-row-bg: var(--tk-surface);
   --tk-row-radius: 12px;
@@ -89,6 +95,44 @@
   --tk-row-size-big: 1.25rem;
   /* How narrow a name box may get before the row wraps instead. */
   --tk-name-basis: 9ch;
+}
+
+/* Every rule in this file measures borders and padding inside the box. */
+* {
+  box-sizing: border-box;
+}
+
+/* ── the screen ──────────────────────────────────────────────────────────
+ *
+ * One column, safe on a phone, centred on anything wider.
+ *
+ * `svh`, NEVER `vh` — and never `dvh` either. Both apps had already worked out
+ * that `vh` lies on iOS, where Safari's toolbar overlays the viewport it
+ * reports; they landed on different fixes. `dvh` tracks the toolbar as it comes
+ * and goes, which means the screen resizes mid-scroll and a centred one drifts
+ * while you are reading it. `svh` is the viewport with the toolbar OUT — the
+ * smallest it ever gets — so a bottom button is never underneath the chrome
+ * exactly when a thumb reaches for it. That is what both comments were asking
+ * for, so it is what everyone gets.
+ *
+ * The safe-area insets are added to the padding rather than replacing it: on a
+ * phone with no notch they resolve to zero and the padding still holds.
+ */
+.screen {
+  min-height: 100svh;
+  max-width: var(--tk-screen-max);
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + var(--tk-screen-pad-top))
+    calc(env(safe-area-inset-right) + var(--tk-screen-pad-x))
+    calc(env(safe-area-inset-bottom) + var(--tk-screen-pad-bottom))
+    calc(env(safe-area-inset-left) + var(--tk-screen-pad-x));
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-gap);
+}
+
+.screen.center {
+  justify-content: center;
 }
 
 /* ── cards ───────────────────────────────────────────────────────────────
