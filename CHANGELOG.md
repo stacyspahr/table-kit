@@ -7,6 +7,20 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.9.1
+
+The card measures itself before it draws. Both bugs this fixes were only
+visible once a real one was rendered.
+
+- Fixed: a four-seat game with two awards left the bottom third of the card
+  empty. Everything below the lockup is now centred in the space it has, so a
+  short card reads as composed rather than as a long one that ran out of things
+  to say.
+- Fixed: an eight-seat game with five awards ran off the bottom. The trim was
+  estimating award heights instead of measuring the wrapped text, so it stopped
+  one award too early. It now wraps once, keeps the lines, and both the trim and
+  the draw use the same numbers.
+
 ## v0.9.0
 
 The share card, from `SHARE_CARD_SPEC.md`. One tap at the end of a game

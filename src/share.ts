@@ -196,6 +196,52 @@ export async function renderCard(spec: CardSpec): Promise<Blob> {
     y += 40
   }
 
+  // ── measure everything before drawing any of it ───────────────────────
+  //
+  // Two passes rather than one, because both of the things that go wrong on a
+  // fixed-size card need the total height BEFORE the first stroke: a four-seat
+  // game with two awards leaves a third of the card empty, and an eight-seat
+  // game with five awards runs off the bottom. Drawing as you go can only ever
+  // catch the second one, and only once it is too late to do much about it.
+  //
+  // Wrapping is done here and the lines are kept, so the draw pass measures
+  // nothing twice and cannot disagree with what was planned.
+  ctx.font = `400 30px ${theme.font}`
+  const winnerLines = wrap(ctx, spec.winnerLine, W - PAD * 2 - 60)
+
+  const wrapBlurb = (blurb: string) => {
+    ctx.font = `400 26px ${theme.font}`
+    return wrap(ctx, blurb, W - PAD * 2)
+  }
+
+  let rowStep = 54
+  let awards = spec.awards.map((a) => ({ ...a, lines: wrapBlurb(a.blurb) }))
+
+  const awardsHeight = (list: typeof awards) =>
+    list.reduce((sum, a) => sum + 36 + (a.who ? 34 : 0) + a.lines.length * 34 + 20, 0)
+
+  // Headline block, board block, awards block — everything below the lockup.
+  const bodyHeight = () =>
+    54 + 32 + 88 + winnerLines.length * 40 + 70 + spec.board.length * rowStep + 56 +
+    awardsHeight(awards)
+
+  const room = H - PAD - y
+
+  // Rows lose their air before anything is dropped.
+  if (bodyHeight() > room) rowStep = 46
+  // Then awards go — from the TOP, because the list is editorially ordered with
+  // the funny one last, and trimming from the end takes the punchline.
+  while (awards.length > 1 && bodyHeight() > room) awards = awards.slice(1)
+
+  /**
+   * The slack, spent on centring rather than left at the bottom.
+   *
+   * The lockup stays pinned to the top, where a brand belongs. Everything under
+   * it floats in what is left, so a short card reads as composed instead of as
+   * a long card that ran out of things to say.
+   */
+  y += Math.max(0, (room - bodyHeight()) / 2)
+
   // ── the result ────────────────────────────────────────────────────────
   y += 54
   ctx.font = `800 26px ${theme.font}`
@@ -210,26 +256,10 @@ export async function renderCard(spec: CardSpec): Promise<Blob> {
   y += 46
   ctx.font = `400 30px ${theme.font}`
   ctx.fillStyle = theme.muted
-  for (const line of wrap(ctx, spec.winnerLine, W - PAD * 2 - 60)) {
+  for (const line of winnerLines) {
     ctx.fillText(line, mid, y)
     y += 40
   }
-
-  // ── how much room is left, and what has to give ───────────────────────
-  //
-  // Shrink the board first: rows lose their air before anything is dropped.
-  // Then trim awards — from the TOP, because the list is editorially ordered
-  // with the funny one last, and cutting from the end takes the punchline.
-  const footerY = H - PAD
-  let rowStep = 54
-  let awards = spec.awards
-  const awardHeight = (list: CardAward[]) =>
-    list.reduce((sum, a) => sum + (a.who ? 118 : 84), 0)
-  const boardTop = () => y + 44
-  const need = () => boardTop() + spec.board.length * rowStep + 60 + awardHeight(awards)
-
-  if (need() > footerY) rowStep = 46
-  while (awards.length > 1 && need() > footerY) awards = awards.slice(1)
 
   // ── the board ─────────────────────────────────────────────────────────
   y += 24
@@ -279,7 +309,7 @@ export async function renderCard(spec: CardSpec): Promise<Blob> {
 
     ctx.font = `400 26px ${theme.font}`
     ctx.fillStyle = theme.muted
-    for (const line of wrap(ctx, award.blurb, W - PAD * 2)) {
+    for (const line of award.lines) {
       ctx.fillText(line, PAD, y)
       y += 34
     }
