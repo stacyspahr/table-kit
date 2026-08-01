@@ -1,7 +1,10 @@
 # The design system, written down
 
-Status: **proposed, nothing built.** Decisions A–D below need a yes before any
-code moves.
+Status: **decisions A–D agreed; first pass built** in table-kit v0.4.2.
+`styles.css` holds the shared bones; both apps import it before their own file.
+
+What landed, and what deliberately did not, is at the bottom under
+[What is shared, and what is not](#what-is-shared-and-what-is-not).
 
 Beat the Heat and Flip 7 already share a design system. It just isn't written
 anywhere, so it exists as two copies of one stylesheet that drift apart every
@@ -68,6 +71,47 @@ wrong to share it — the rules-sheet header becomes `.sheet-head`.
 own CSS. The app's stylesheet still loads after and can override for one
 screen, so the escape hatch stays open without making divergence the default.
 The cost is real: fixing a button then needs a kit release.
+
+## What is shared, and what is not
+
+Moving the CSS turned up something the class-name count hid: **the two apps
+share names far more than they share shapes.**
+
+In `table-kit/styles.css`, because both apps genuinely build these the same way:
+
+- the whole `.btn` family — `.big`, `.primary`, `.ghost`, `.danger`,
+  `:disabled`, and the pressed edge
+- `.linklike` and `.linklike.danger`
+- `.update-banner`
+- `.fine`, `.muted`, `.center-text`
+- `.danger-card`
+
+Left per-app, because the two apps build them **differently**, and unifying
+them is a decision about which construction wins rather than a move:
+
+| Class | Beat the Heat | Flip 7 |
+| --- | --- | --- |
+| `.row` | wraps, so a long name never ellipsizes | space-between, with a gradient progress bar |
+| `.tick` | a bare glyph | a filled circle that animates |
+| `.pill` | caps, filled | lowercase, several semantic variants |
+| `.card` | flex column with a gap | a block; children carry their own margins |
+| `.screen` | px, `dvh`, container gap | rem, `svh`, container gap |
+| `.qr-screen` | cream card on the app's dark ground | a full white screen |
+
+Each row there is its own small design decision, and each one changes how a
+screen looks. They are the next round, not this one.
+
+The same reasoning deferred one rename: Flip 7's `.segmented` was going to
+become `.seg` / `.seg-btn` per decision C, but Beat the Heat's `.seg` is a flex
+column and Flip 7's is a grid. Giving two different constructions one name is
+the `.topbar` mistake again, so the rename waits until the control is actually
+unified.
+
+**Declared overrides.** Flip 7 keeps a handful of rules in its own file —
+button margins, the full-width danger link, banner size. They are there because
+Flip 7 spaces buttons with their own margins while Beat the Heat spaces them
+from the container. That disagreement is real and unsettled; it is now visible
+in a diff instead of buried in a second copy of the whole system.
 
 ## Order of work
 
