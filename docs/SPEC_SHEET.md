@@ -30,7 +30,7 @@ Four, and the split is deliberate — importing the core must never pull React o
 
 | Import | Contains | Needs |
 |---|---|---|
-| `table-kit` | The core: config, session, clients, state, queue, actions, awards, roster, PWA, version | `pocketbase` |
+| `table-kit` | The core: config, session, clients, state, queue, actions, awards, roster, nights, PWA, version | `pocketbase` |
 | `table-kit/react` | `QrPanel` | `react`, `qrcode` (optional peers) |
 | `table-kit/roster` | Seat-claim logic alone — pure, no PocketBase | nothing |
 | `table-kit/build` | `writeVersionFile`, `kitVersion` — Node only, build time | nothing |
@@ -176,6 +176,26 @@ you say out loud, and "Nana and Grandpa both got scorched" is a fine sentence.
 
 Helpers: `submissionsByPlayer(ctx)`, `closedSubmissions(rounds, subs)` — both
 exclude drafts.
+
+### Nights — `nights.ts`
+
+Grouping past games into the evenings they were played on. Reads `created` and
+nothing else, so it never learns what a round contained.
+
+| Export | Does |
+|---|---|
+| `groupByNight(items, now)` | Anything with a `created` stamp → `Night<T>[]`, newest night first |
+| `nightKey(date)` | Local `YYYY-MM-DD` of the night a moment belongs to |
+| `nightLabel(key, now)` | `'Today'`, `'Yesterday'`, or a short date |
+| `parseStamp(stamp)` | PocketBase's space-separated form → `Date`, Safari-safe |
+| `timeOfDay(stamp)` | The clock time a game started |
+
+A night runs **5am to 5am**, so a game that finished at 00:40 stays with the
+evening that produced it rather than being filed under tomorrow.
+
+The labels say Today and Yesterday, **not Tonight**. A game played at 11:15am is
+not part of tonight, and the old wording made a morning game look misfiled. The
+bucket is still a night; only the label stopped claiming to know the hour.
 
 ### Seats — `roster.ts` (also `table-kit/roster`)
 

@@ -7,6 +7,28 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.6.0
+
+Night grouping becomes the kit's. It was the same function in both games, and
+the two copies had drifted far enough that one Friday read differently
+depending on which app you opened.
+
+- Added: `nights.ts` in the core — `groupByNight`, `nightKey`, `nightLabel`,
+  `parseStamp`, `timeOfDay`. Nothing already exported moved, so taking this is
+  safe; the apps switch over on their own schedule.
+- Changed, for whoever adopts it: **the label for today is `Today`, not
+  `Tonight`.** Both games said Tonight for anything created on the current day,
+  which is wrong every time somebody plays in the morning — an 11:15am game
+  filed under "Tonight" looks like a bug in the history. "Today" is true at
+  every hour and costs nothing, because the clock time is already on each row.
+  The bucket is still a night. Only the label stopped claiming to know.
+- The kit's version takes Beat the Heat's 5am rollover (a game finishing at
+  00:40 stays with the evening that produced it) and Flip 7's short date format
+  (`Fri, Jul 24`, which doesn't wrap on a phone). Flip 7 keyed on the calendar
+  day, so games it used to split across two dates now group as one night.
+- `Night<T>` carries `items`, matching Beat the Heat. Flip 7's own copy called
+  it `games`; that rename is the one edit its screen needs.
+
 ## v0.5.2
 
 Nothing an app can call changed — this is a housekeeping release, tagged so
