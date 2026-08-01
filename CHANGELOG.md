@@ -7,6 +7,26 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.3.0
+
+The awards engine — the "capture the fun" layer, minus any opinion about what
+is fun in your game.
+
+- Added: `runAwards(defs, ctx)`. A game supplies definitions (what to measure
+  per player, which end wins); the kit runs eligibility, ranking, ties, and
+  drops awards nobody qualified for. It never learns what is being measured.
+- Added: `pick: 'highest' | 'lowest' | 'all'`. The third is for threshold
+  awards — "never took more than five in a round" is true or it isn't, and
+  ranking the people it's true of would hand it to one of them for no reason.
+- Added: `measure` returns `number | null`, where null means NOT ELIGIBLE. That
+  is a different thing from zero: "took the most cards" with nobody having
+  taken a card should produce no award, not a three-way tie on nothing.
+- Added: `submissionsByPlayer(ctx)` and `closedSubmissions(rounds, subs)` —
+  the two scopings every definition wants. Both exclude drafts.
+- Ties always share. There is no tiebreak option: at a table an award is a
+  thing you say out loud, and "Nana and Grandpa both got scorched" is a fine
+  sentence.
+
 ## v0.2.1
 
 Fixes a bug introduced with drafts in v0.2.0. Take this if you are on 0.2.0.
