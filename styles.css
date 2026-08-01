@@ -73,6 +73,132 @@
   --tk-note-size: 0.92rem;
   --tk-muted-align: left;
   --tk-disabled-opacity: 0.5;
+
+  --tk-surface: #1f1d1a;
+  --tk-card-radius: var(--tk-radius);
+  --tk-card-pad: 1.25rem;
+  --tk-card-gap: 1rem;
+
+  --tk-list-gap: 0.5rem;
+  --tk-row-bg: var(--tk-surface);
+  --tk-row-radius: 12px;
+  --tk-row-pad: 0.75rem 1rem;
+  --tk-row-gap: 0.75rem;
+  --tk-row-min: 3.25rem;
+  --tk-row-min-big: 4rem;
+  --tk-row-size-big: 1.25rem;
+  /* How narrow a name box may get before the row wraps instead. */
+  --tk-name-basis: 9ch;
+}
+
+/* ── cards ───────────────────────────────────────────────────────────────
+ *
+ * THE CARD OWNS THE SPACE INSIDE IT. One gap, set once, applying to every
+ * child — never a margin on the children themselves.
+ *
+ * This was the one real disagreement between the two apps, and it is settled
+ * here: margins collapse, double against each other, and depend on the order
+ * children happen to sit in, so adding a paragraph to a card meant discovering
+ * which of its neighbours already carried a margin. A gap cannot be got wrong
+ * by adding a child.
+ *
+ * A card's children therefore carry NO vertical margin of their own. Where one
+ * genuinely needs more air than the rest — a modal's question above its answer
+ * — it adds the difference, not the whole distance.
+ */
+.card {
+  background: var(--tk-surface);
+  border: var(--tk-border-w) solid var(--tk-line);
+  border-radius: var(--tk-card-radius);
+  padding: var(--tk-card-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-card-gap);
+}
+
+/* The same rule for the two other blocks that stack controls. Without it a
+   form's submit button shrinks to its own text under full-width fields and
+   reads as though it belongs to something else. */
+.card form,
+.qr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-card-gap);
+}
+
+/* ── lists and rows ──────────────────────────────────────────────────────
+ *
+ * A ROW WRAPS RATHER THAN SQUEEZING A NAME. Below --tk-name-basis the pill and
+ * the score drop to their own line and the row gets taller. Names are the one
+ * thing on a board that has to stay readable across a table, so nothing here
+ * may ellipsize one or shrink it to fit.
+ */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-list-gap);
+  /* Positioned so a leaderboard row measures its offset against the LIST.
+     Against the page instead, a reflow elsewhere on the screen gets animated
+     too and the board appears to fly rather than quietly reorder. */
+  position: relative;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-row-gap);
+  font: inherit;
+  text-align: left;
+  padding: var(--tk-row-pad);
+  min-height: var(--tk-row-min);
+  border-radius: var(--tk-row-radius);
+  border: var(--tk-border-w) solid var(--tk-line);
+  background: var(--tk-row-bg);
+  color: var(--tk-ink);
+}
+
+/* The name box. Sizing only — what goes INSIDE it is the game's business: one
+   app stacks a note under the name, the other sets pills beside it. */
+.row-main {
+  flex: 1 1 var(--tk-name-basis);
+  min-width: var(--tk-name-basis);
+}
+
+.row-note {
+  color: var(--tk-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.row.mine {
+  border-color: var(--tk-accent);
+}
+
+.big-list .row {
+  min-height: var(--tk-row-min-big);
+  font-size: var(--tk-row-size-big);
+  font-weight: 600;
+}
+
+/* A row that is a button is a row you can press. Rows carry no resting edge —
+   a board of eight would be a stack of ledges — but a pressed one still has to
+   acknowledge the tap. */
+button.row {
+  cursor: pointer;
+}
+
+button.row:active:not(:disabled) {
+  border-color: var(--tk-accent);
+  background: var(--tk-surface);
+}
+
+button.row:disabled {
+  opacity: 0.5;
 }
 
 /* ── buttons ─────────────────────────────────────────────────────────────
