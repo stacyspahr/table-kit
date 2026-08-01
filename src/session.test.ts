@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { keepAwake } from './session.js'
+import { getDeviceId, keepAwake } from './session.js'
 
 /**
  * A stand-in for the browser's screen wake lock.
@@ -71,6 +71,40 @@ afterEach(() => {
   vi.useRealTimers()
   setVisibility('visible')
   Reflect.deleteProperty(navigator, 'wakeLock')
+})
+
+describe("this phone's id", () => {
+  /**
+   * ⚠️ The storage key is a DATA CONTRACT with every phone that has already
+   * played, not an implementation detail. Change the shape of it and each of
+   * them silently becomes a new device: seats stop being reclaimable and a
+   * player who reloads mid-game is a stranger to the roster.
+   *
+   * It is pinned here because Flip 7 arrived at this key from its own local
+   * copy of this module — `flip7_device_id` — and the migration into the kit
+   * was only safe because `${appKey}_device_id` lands on the identical string.
+   */
+  it('keys off the app slug, and nothing else', () => {
+    localStorage.clear()
+    const id = getDeviceId('flip7')
+    expect(localStorage.getItem('flip7_device_id')).toBe(id)
+  })
+
+  it('gives the same phone the same id twice', () => {
+    localStorage.clear()
+    expect(getDeviceId('heat')).toBe(getDeviceId('heat'))
+  })
+
+  it('keeps two games on one phone apart', () => {
+    localStorage.clear()
+    expect(getDeviceId('flip7')).not.toBe(getDeviceId('heat'))
+  })
+
+  it('adopts an id that was already there rather than minting a new one', () => {
+    localStorage.clear()
+    localStorage.setItem('flip7_device_id', 'from-a-previous-game-night')
+    expect(getDeviceId('flip7')).toBe('from-a-previous-game-night')
+  })
 })
 
 describe('keeping the table lit', () => {

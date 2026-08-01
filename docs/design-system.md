@@ -212,6 +212,11 @@ invisible to players.
    a token is wrong.
 3. Apply decision A. The only step players notice, and only in Flip 7.
 4. Rename per decision C, once, across both apps.
-5. Fold Flip 7's leftover `lib/session.ts` into the kit — same disease, one
-   file over. Its device-id storage key changes, so every phone gets a new id:
-   do it between game nights, never during one.
+5. ~~Fold Flip 7's leftover `lib/session.ts` into the kit.~~ **Done.** The
+   warning attached to this step was wrong: it claimed the device-id storage
+   key would change and hand every phone a new id. It does not. Flip 7's
+   `APP_KEY` is `flip7` and the kit builds `${appKey}_device_id`, which is
+   character-for-character the local module's `flip7_device_id`. Nothing was
+   reset. That key is now pinned by a test in `session.test.ts`, because it is
+   a data contract with every phone that has already played, not an
+   implementation detail.
