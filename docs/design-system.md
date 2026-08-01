@@ -167,10 +167,27 @@ Two defects surfaced during the move, both now fixed in **both** apps:
   the moment it sits inside something with padding — at narrow widths it grew
   straight through the card's edges. It measures against the card now.
 
-**Still duplicated:** `QrPanel.tsx` itself is the same component in both apps —
-diffing them shows only import paths and two comments. Moving it into the kit
-means table-kit taking a React peer dependency, which is a bigger step than any
-taken so far and is not made yet.
+### The component itself (v0.5.0)
+
+`QrPanel` is the kit's now, behind a **`table-kit/react`** entry point.
+
+The two copies differed by a share-sheet title and two comments. Everything else
+— the QR generation, the wake lock, the clipboard fallback, the markup — was the
+same code maintained twice, which is how the quiet zone came to be wrong in both
+at once.
+
+- **Separate entry point, on purpose.** The core stays framework-free: seats,
+  sync, the offline queue and the awards engine have no business knowing what
+  renders them, and importing `table-kit` must not pull React in behind it.
+- **`react` and `qrcode` are optional peers.** Import `table-kit/react` and you
+  need both; import the core and you need neither.
+- **The one real difference became a prop.** `gameName` fills the share sheet's
+  "Join the … game", and each app names itself once (`GAME_NAME`) rather than at
+  every call site.
+
+This is the first React code in the kit. Anything else moving here should clear
+the same bar: identical in both apps, no game-specific wording or palette baked
+in, and worth a peer dependency.
 
 The same reasoning deferred one rename: Flip 7's `.segmented` was going to
 become `.seg` / `.seg-btn` per decision C, but Beat the Heat's `.seg` is a flex
