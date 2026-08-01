@@ -77,7 +77,7 @@ The cost is real: fixing a button then needs a kit release.
 Moving the CSS turned up something the class-name count hid: **the two apps
 share names far more than they share shapes.**
 
-In `table-kit/styles.css`, because both apps genuinely build these the same way:
+In `table-kit/styles.css`:
 
 - the whole `.btn` family — `.big`, `.primary`, `.ghost`, `.danger`,
   `:disabled`, and the pressed edge
@@ -85,21 +85,45 @@ In `table-kit/styles.css`, because both apps genuinely build these the same way:
 - `.update-banner`
 - `.fine`, `.muted`, `.center-text`
 - `.danger-card`
+- `.card`, and the form and `.qr-actions` inside it *(v0.4.3)*
+- `.list`, `.row`, `.row-main`, `.row-note`, `.row.mine`, `.big-list`,
+  and the pressed row *(v0.4.3)*
 
 Left per-app, because the two apps build them **differently**, and unifying
 them is a decision about which construction wins rather than a move:
 
 | Class | Beat the Heat | Flip 7 |
 | --- | --- | --- |
-| `.row` | wraps, so a long name never ellipsizes | space-between, with a gradient progress bar |
 | `.tick` | a bare glyph | a filled circle that animates |
 | `.pill` | caps, filled | lowercase, several semantic variants |
-| `.card` | flex column with a gap | a block; children carry their own margins |
 | `.screen` | px, `dvh`, container gap | rem, `svh`, container gap |
 | `.qr-screen` | cream card on the app's dark ground | a full white screen |
 
 Each row there is its own small design decision, and each one changes how a
-screen looks. They are the next round, not this one.
+screen looks.
+
+### The card and the row (v0.4.3)
+
+Both went to Beat the Heat's construction, and both come down to the same
+principle: **the container owns the space, and a name is never squeezed.**
+
+- **The card** carries one gap for every child; no child of a card carries a
+  vertical margin. Margins collapse, double, and depend on the order children
+  happen to sit in — adding a paragraph meant discovering which of its
+  neighbours already had one. Flip 7 lost a dozen child margins in the
+  conversion, including the `.card > .btn:not(.big)` rule that existed purely
+  because no container had a gap. Where something genuinely needs more air than
+  the rest (a modal's question above its answer) it now adds the difference,
+  not the whole distance.
+- **The row wraps** rather than squeezing. Past `--tk-name-basis` the pill and
+  the total drop to their own line and the row gets taller. This fixed a real
+  defect: at narrow widths Flip 7's `space-between` gave a long name a
+  three-line sliver, and its `.big-list` rows printed their name and their note
+  on top of each other.
+
+`.row-main` is sizing only. What goes *inside* the name box stays each game's
+business — Beat the Heat stacks a note under the name, Flip 7 sets pills beside
+it — so each app keeps its own rule for the content model.
 
 The same reasoning deferred one rename: Flip 7's `.segmented` was going to
 become `.seg` / `.seg-btn` per decision C, but Beat the Heat's `.seg` is a flex
