@@ -89,6 +89,7 @@ In `table-kit/styles.css`:
 - `.list`, `.row`, `.row-main`, `.row-note`, `.row.mine`, `.big-list`,
   and the pressed row *(v0.4.3)*
 - `.screen`, `.screen.center`, and the `box-sizing` reset *(v0.4.4)*
+- `.qr-screen`, `.qr-card`, `.qr-code`, `.qr-help` *(v0.4.5)*
 
 Left per-app, because the two apps build them **differently**, and unifying
 them is a decision about which construction wins rather than a move:
@@ -97,7 +98,6 @@ them is a decision about which construction wins rather than a move:
 | --- | --- | --- |
 | `.tick` | a bare glyph | a filled circle that animates |
 | `.pill` | caps, filled | lowercase, several semantic variants |
-| `.qr-screen` | cream card on the app's dark ground | a full white screen |
 
 Each row there is its own small design decision, and each one changes how a
 screen looks.
@@ -143,6 +143,34 @@ becoming tokens. Two things did change:
   sixteen pixels nobody had chosen, and visible only on a desktop browser.
 
 The `box-sizing` reset came too, since every rule in the file assumes it.
+
+### The join code (v0.4.5)
+
+Both apps had the same reason written above different answers — *this gets
+scanned across a table, at an angle, often in bad light.* Flip 7 turned the
+whole screen white for it; Beat the Heat put a cream card on its own dark
+ground.
+
+The card won. The contrast a camera needs comes from the code's own
+black-on-white and its quiet zone, not from the rest of the display, so going
+white edge to edge bought very little and cost the app its face at the one
+moment a stranger is pointing a phone at it.
+
+Two defects surfaced during the move, both now fixed in **both** apps:
+
+- **The quiet zone was one module, where the spec asks for four.** Enough that
+  most phones coped, and exactly the thing that stops coping at an angle. It
+  matters more under this decision, not less: the card behind the code is cream
+  rather than white, so that border is the whole quiet zone and does not get to
+  borrow the surface underneath.
+- **`.qr-code` was sized at `88vw`.** Right on a full-bleed white screen, wrong
+  the moment it sits inside something with padding — at narrow widths it grew
+  straight through the card's edges. It measures against the card now.
+
+**Still duplicated:** `QrPanel.tsx` itself is the same component in both apps —
+diffing them shows only import paths and two comments. Moving it into the kit
+means table-kit taking a React peer dependency, which is a bigger step than any
+taken so far and is not made yet.
 
 The same reasoning deferred one rename: Flip 7's `.segmented` was going to
 become `.seg` / `.seg-btn` per decision C, but Beat the Heat's `.seg` is a flex
