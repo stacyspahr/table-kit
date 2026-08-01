@@ -1,0 +1,223 @@
+/*
+ * table-kit — the shared bones.
+ *
+ * Import this BEFORE the app's own stylesheet:
+ *
+ *   import 'table-kit/styles.css'
+ *   import './index.css'
+ *
+ * Nothing in here contains a colour, a size or a case decision of its own.
+ * Every value comes from a `--tk-*` token the app sets, which is what lets one
+ * rule produce Beat the Heat's chunky pressed caps and Flip 7's flat sentence
+ * case without either app owning a copy of the rule.
+ *
+ * The app's own file loads after this one and can still override any of it for
+ * a single screen. That escape hatch is deliberate — an override you can see in
+ * a diff is fine, a silent second copy of the whole system is what this file
+ * exists to stop.
+ *
+ * ── What is NOT in here, and why ─────────────────────────────────────────
+ *
+ * `.screen`, `.card`, `.row`, `.pill`, `.tick` and `.qr-*` are named the same
+ * in both apps but BUILT differently — Beat the Heat's row wraps so a long name
+ * never ellipsizes, Flip 7's is a space-between with a gradient bar; Flip 7's
+ * tick is a filled circle, Beat the Heat's is a bare glyph. Unifying those is
+ * not a move, it is a decision about which construction wins, and each one
+ * changes how a screen looks. They stay per-app until that call is made.
+ * See docs/design-system.md.
+ */
+
+/* ── the token contract ──────────────────────────────────────────────────
+ *
+ * An app must define all of these. The fallbacks here are only so a missing
+ * one degrades to something visible rather than to nothing at all.
+ */
+:root {
+  --tk-ink: #ffffff;
+  --tk-muted: #999999;
+  --tk-line: #333333;
+
+  --tk-accent: #37b7a4;
+  --tk-accent-ink: #000000;
+  /* The lip a key sits on and drops onto. `transparent` for a flat app. */
+  --tk-accent-edge: transparent;
+
+  --tk-primary: var(--tk-accent);
+  --tk-primary-ink: var(--tk-accent-ink);
+  --tk-primary-edge: var(--tk-accent-edge);
+
+  --tk-danger: #c63a32;
+  --tk-danger-ink: #ffffff;
+
+  --tk-radius: 16px;
+  --tk-border-w: 1px;
+  /* How far a pressed key travels. 0 for an app whose keys don't move. */
+  --tk-edge: 0px;
+
+  /* Chrome is furniture you recognise by shape — buttons, banners. Content is
+     anything a person wrote. Only chrome is affected by these. */
+  --tk-chrome-case: none;
+  --tk-chrome-weight: 700;
+  --tk-chrome-tracking: 0;
+
+  /* House minimums. Both apps are used one-handed, mid-game, in bad light. */
+  --tk-tap: 52px;
+  --tk-tap-big: 60px;
+  --tk-tap-min: 44px;
+
+  --tk-btn-pad: 0.85rem 1.25rem;
+  --tk-btn-size: 1.05rem;
+  --tk-btn-size-big: 1.2rem;
+
+  --tk-note-margin: 0;
+  --tk-note-size: 0.92rem;
+  --tk-muted-align: left;
+  --tk-disabled-opacity: 0.5;
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────────
+ *
+ * The hierarchy is by CONSEQUENCE, not by where the button happens to sit:
+ *
+ *   .btn.big.primary  the one thing the table is waiting for. One per screen.
+ *   .btn              a real action that isn't the main one.
+ *   .btn.ghost        go look at something. Changes nothing about the game.
+ *   .linklike         leave this screen, or back out of what you started.
+ *   .btn.danger       destroys something. Never without a confirm.
+ *
+ * Anything that changes the game is a .btn. Anything that only changes what
+ * you are looking at is .ghost or .linklike. Rules and the join code are
+ * always .ghost — in every app, on every screen.
+ */
+.btn {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-weight: var(--tk-chrome-weight);
+  font-size: var(--tk-btn-size);
+  text-transform: var(--tk-chrome-case);
+  letter-spacing: var(--tk-chrome-tracking);
+  min-height: var(--tk-tap);
+  padding: var(--tk-btn-pad);
+  border-radius: var(--tk-radius);
+  /* Transparent rather than none, so .ghost's border costs no layout. */
+  border: var(--tk-border-w) solid transparent;
+  background: var(--tk-accent);
+  color: var(--tk-accent-ink);
+  cursor: pointer;
+  --tk-btn-edge: var(--tk-accent-edge);
+  box-shadow: 0 var(--tk-edge) 0 var(--tk-btn-edge);
+  transition: transform 60ms ease, box-shadow 60ms ease;
+}
+
+/* The whole key drops onto its own edge. Nothing below it moves, because the
+   shadow it loses is exactly the distance it travels. On a flat app --tk-edge
+   is 0 and this does nothing at all. */
+.btn:active:not(:disabled) {
+  transform: translateY(var(--tk-edge));
+  box-shadow: 0 0 0 var(--tk-btn-edge);
+}
+
+.btn.big {
+  min-height: var(--tk-tap-big);
+  font-size: var(--tk-btn-size-big);
+}
+
+.btn.primary {
+  background: var(--tk-primary);
+  color: var(--tk-primary-ink);
+  --tk-btn-edge: var(--tk-primary-edge);
+}
+
+.btn.ghost {
+  background: transparent;
+  border-color: var(--tk-line);
+  color: var(--tk-ink);
+  --tk-btn-edge: transparent;
+}
+
+.btn.danger {
+  background: var(--tk-danger);
+  color: var(--tk-danger-ink);
+  --tk-btn-edge: var(--tk-primary-edge);
+}
+
+/* A disabled key must not look pressable, so it loses the edge outright rather
+   than being a dimmed version of a thing that moves. */
+.btn:disabled {
+  opacity: var(--tk-disabled-opacity);
+  cursor: default;
+  box-shadow: none;
+}
+
+.danger-card {
+  border-color: var(--tk-danger);
+}
+
+/* ── leaving, and backing out ────────────────────────────────────────────
+ *
+ * Never a way to change the game — only a way to stop looking at this screen.
+ * Keeps a full tap target despite looking like text: it is pressed one-handed,
+ * mid-game, by someone looking at their cards.
+ */
+.linklike {
+  font: inherit;
+  background: none;
+  border: 0;
+  color: var(--tk-accent);
+  padding: 10px 4px;
+  min-height: var(--tk-tap-min);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Destructive, and quiet until you mean it — a plain link, never a button
+   competing with the ones pressed mid-game. */
+.linklike.danger {
+  color: var(--tk-muted);
+}
+
+/* ── small text ──────────────────────────────────────────────────────────── */
+
+.fine {
+  margin: var(--tk-note-margin);
+  color: var(--tk-muted);
+  font-size: var(--tk-note-size);
+}
+
+.muted {
+  color: var(--tk-muted);
+  text-align: var(--tk-muted-align);
+}
+
+.center-text {
+  text-align: center;
+}
+
+/* ── the update banner ───────────────────────────────────────────────────
+ *
+ * Every app here gets one. The people using these apps do not force-refresh a
+ * web page, and will happily play a whole night on a stale build otherwise.
+ */
+.update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  font: inherit;
+  font-weight: var(--tk-chrome-weight);
+  font-size: 0.9rem;
+  text-transform: var(--tk-chrome-case);
+  letter-spacing: var(--tk-chrome-tracking);
+  border: 0;
+  cursor: pointer;
+  background: var(--tk-banner-bg, var(--tk-accent));
+  color: var(--tk-banner-ink, var(--tk-accent-ink));
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
