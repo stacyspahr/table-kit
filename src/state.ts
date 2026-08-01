@@ -34,6 +34,15 @@ export interface PlayerRec {
   seat_order: number
   /** Empty marks the seat unclaimed — a player with no phone. */
   device_id: string
+  /**
+   * The throwaway guest credential holding this seat, when one does.
+   *
+   * Both games have had this column since their players collection was
+   * created; the kit simply never modelled it, because Beat the Heat's client
+   * never reads it. Flip 7's does — it is how a returning phone finds which
+   * seat is already its own, alongside `device_id`.
+   */
+  guest: string
   roster_entry: string
   /** Latecomers do not owe hands for rounds that ran before they sat down. */
   joined_round: number

@@ -39,6 +39,7 @@ function player(id: string, seat: number, joined = 1): PlayerRec {
     display_name: id,
     seat_order: seat,
     device_id: '',
+    guest: '',
     roster_entry: '',
     joined_round: joined,
   }
@@ -286,8 +287,8 @@ describe('drafts are not answers', () => {
   const base = () => ({
     game: { id: 'g', join_token: 't', status: 'active' as const, host_user: 'u', created: '' },
     players: [
-      { id: 'p1', game: 'g', display_name: 'Ada', seat_order: 0, device_id: 'a', roster_entry: '', joined_round: 1 },
-      { id: 'p2', game: 'g', display_name: 'Bob', seat_order: 1, device_id: 'b', roster_entry: '', joined_round: 1 },
+      { id: 'p1', game: 'g', display_name: 'Ada', seat_order: 0, device_id: 'a', guest: '', roster_entry: '', joined_round: 1 },
+      { id: 'p2', game: 'g', display_name: 'Bob', seat_order: 1, device_id: 'b', guest: '', roster_entry: '', joined_round: 1 },
     ],
     rounds: [{ id: 'r1', game: 'g', round_number: 1, status: 'open' as const }],
     submissions: [],

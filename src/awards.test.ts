@@ -27,6 +27,7 @@ function player(id: string, seat: number): PlayerRec {
     display_name: id,
     seat_order: seat,
     device_id: '',
+    guest: '',
     roster_entry: '',
     joined_round: 1,
   }
