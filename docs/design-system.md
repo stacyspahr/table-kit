@@ -88,6 +88,7 @@ In `table-kit/styles.css`:
 - `.card`, and the form and `.qr-actions` inside it *(v0.4.3)*
 - `.list`, `.row`, `.row-main`, `.row-note`, `.row.mine`, `.big-list`,
   and the pressed row *(v0.4.3)*
+- `.screen`, `.screen.center`, and the `box-sizing` reset *(v0.4.4)*
 
 Left per-app, because the two apps build them **differently**, and unifying
 them is a decision about which construction wins rather than a move:
@@ -96,7 +97,6 @@ them is a decision about which construction wins rather than a move:
 | --- | --- | --- |
 | `.tick` | a bare glyph | a filled circle that animates |
 | `.pill` | caps, filled | lowercase, several semantic variants |
-| `.screen` | px, `dvh`, container gap | rem, `svh`, container gap |
 | `.qr-screen` | cream card on the app's dark ground | a full white screen |
 
 Each row there is its own small design decision, and each one changes how a
@@ -124,6 +124,25 @@ principle: **the container owns the space, and a name is never squeezed.**
 `.row-main` is sizing only. What goes *inside* the name box stays each game's
 business — Beat the Heat stacks a note under the name, Flip 7 sets pills beside
 it — so each app keeps its own rule for the content model.
+
+### The screen (v0.4.4)
+
+Structurally the two rules were already the same, so this was mostly values
+becoming tokens. Two things did change:
+
+- **`svh`, never `vh` and never `dvh`.** Both apps had worked out that `vh` lies
+  on iOS, where Safari's toolbar overlays the viewport it reports, and each
+  landed on a different fix — Beat the Heat on `dvh`, Flip 7 on `svh`. `dvh`
+  tracks the toolbar as it comes and goes, so the screen resizes mid-scroll and
+  a centred one drifts while you are reading it. `svh` is the viewport with the
+  toolbar *out*, the smallest it ever gets, so a bottom button is never
+  underneath the chrome exactly when a thumb reaches for it. Beat the Heat's
+  `.qr-screen` moved with it: a QR must not resize while somebody across the
+  table is pointing a camera at it.
+- **The canvas is 560px.** It was `34rem` in one app and `560px` in the other —
+  sixteen pixels nobody had chosen, and visible only on a desktop browser.
+
+The `box-sizing` reset came too, since every rule in the file assumes it.
 
 The same reasoning deferred one rename: Flip 7's `.segmented` was going to
 become `.seg` / `.seg-btn` per decision C, but Beat the Heat's `.seg` is a flex
