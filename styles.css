@@ -92,6 +92,16 @@
   --tk-qr-gap: 1.25rem;
   --tk-qr-max: 320px;
 
+  /* The wordmark is the one piece of type that is allowed its own voice — an
+     app whose chrome is sentence case can still shout its own name. */
+  --tk-brand-ink: var(--tk-primary);
+  --tk-brand-size: 1.6rem;
+  --tk-brand-case: uppercase;
+  --tk-brand-weight: 800;
+  --tk-brand-tracking: 0.02em;
+  --tk-brand-gap: 10px;
+  --tk-brand-mark: 40px;
+
   --tk-list-gap: 0.5rem;
   --tk-row-bg: var(--tk-surface);
   --tk-row-radius: 12px;
@@ -140,6 +150,66 @@
 
 .screen.center {
   justify-content: center;
+}
+
+/* ── the brand lockup ────────────────────────────────────────────────────
+ *
+ * Icon, wordmark, tagline. The header a game gets to introduce itself with.
+ *
+ * On a phone this is the ONLY place the app has a face, and the thing that
+ * makes someone recognise what they installed is the mark being the same shape
+ * as the tile on their home screen. So the mark is the game's own SVG — art
+ * stays in the game, always — and the arrangement of it is here.
+ *
+ * Mark BESIDE the wordmark rather than above it. Stacked cost 44px of height on
+ * every screen carrying the app name, including the one you look at mid-round,
+ * and the board is what that space belongs to.
+ *
+ * The tagline is not decoration. It is the one line that tells somebody picking
+ * up a strange phone what game they are about to be handed.
+ */
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  margin: 4px 0 2px;
+}
+
+.lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tk-brand-gap);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: var(--tk-brand-size);
+  font-weight: var(--tk-brand-weight);
+  text-transform: var(--tk-brand-case);
+  /* Caps at a heavy weight set too tight to read across a table; a hair of
+     tracking is what separates the letterforms again. */
+  letter-spacing: var(--tk-brand-tracking);
+  line-height: 1.1;
+  color: var(--tk-brand-ink);
+}
+
+.mark {
+  flex: none;
+  display: block;
+  width: var(--tk-brand-mark);
+  height: var(--tk-brand-mark);
+}
+
+.tagline {
+  margin: 0;
+  color: var(--tk-muted);
+  font-size: 0.95rem;
+  /* Centred here whatever `--tk-muted-align` says: it sits under a centred
+     lockup, and a left-aligned line under a centred one reads as a mistake. */
+  text-align: center;
 }
 
 /* ── the join code ───────────────────────────────────────────────────────

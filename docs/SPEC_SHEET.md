@@ -34,7 +34,7 @@ Four, and the split is deliberate — importing the core must never pull React o
 | `table-kit/react` | `QrPanel` | `react`, `qrcode` (optional peers) |
 | `table-kit/roster` | Seat-claim logic alone — pure, no PocketBase | nothing |
 | `table-kit/build` | `writeVersionFile`, `kitVersion` — Node only, build time | nothing |
-| `table-kit/styles.css` | The kit's own classes (`.qr-*`, screen, card, row) | — |
+| `table-kit/styles.css` | The kit's own classes (`.qr-*`, `.brand`, screen, card, row) | — |
 
 `table-kit/roster` exists so an app that hasn't adopted the core can still take
 the seat shortcuts. That's how Flip 7 got its first shared code, ahead of the

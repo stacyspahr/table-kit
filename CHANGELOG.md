@@ -7,6 +7,23 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.7.0
+
+The brand lockup joins the kit — icon, wordmark, tagline, as one arrangement
+both games share. Beat the Heat had it; Flip 7 had a bare `<h1>` in a top bar
+and no tagline at all, which is why the two home screens never looked like
+siblings.
+
+- Added, in `styles.css`: `.brand`, `.lockup`, `.mark`, `.tagline`. Layout only
+  — the mark itself is the game's own SVG and stays in the game, because art is
+  never kit code.
+- Added tokens: `--tk-brand-{ink,size,case,weight,tracking,gap,mark}`. The
+  wordmark gets its own set rather than riding on `--tk-chrome-*` because an
+  app whose buttons are sentence case can still want its own name in caps —
+  which is exactly the Flip 7 case.
+- Nothing moved. An app that already styles `.brand` itself keeps winning, since
+  its own stylesheet loads second.
+
 ## v0.6.0
 
 Night grouping becomes the kit's. It was the same function in both games, and
