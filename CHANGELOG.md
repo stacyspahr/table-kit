@@ -7,6 +7,20 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.8.0
+
+Two classes both games needed the moment their home screens were rebuilt.
+
+- Added: `.row.chosen` — a row picked but not yet committed to, which is what a
+  new-game list becomes once its presets select instead of firing on tap. Border
+  **and** a tint: at arm's length in bad light, a 1px border change on a row
+  that already has a border is not a selection anybody can see.
+- Added: `.screen-title` — the heading on a screen that isn't home. It is not
+  the wordmark, deliberately; a sub-screen should say what it is rather than
+  repeat the app's name to someone already holding the phone.
+- `color-mix` does the tint against `--tk-row-bg`, so the selection works over
+  whatever ground a game sets without either app hand-picking a fifth colour.
+
 ## v0.7.0
 
 The brand lockup joins the kit — icon, wordmark, tagline, as one arrangement

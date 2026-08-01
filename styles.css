@@ -212,6 +212,22 @@
   text-align: center;
 }
 
+/*
+ * The heading on a screen that is NOT home — Past games, and whatever else gets
+ * pushed off the front in future.
+ *
+ * Deliberately not the wordmark. A sub-screen says what it is; repeating the
+ * app's name on it wastes the one line at the top on something the person
+ * holding the phone already knows.
+ */
+.screen-title {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+  font-weight: var(--tk-chrome-weight);
+  line-height: 1.2;
+  color: var(--tk-ink);
+}
+
 /* ── the join code ───────────────────────────────────────────────────────
  *
  * A LIGHT CARD ON THE APP'S OWN GROUND — not a white screen.
@@ -365,6 +381,30 @@
 
 .row.mine {
   border-color: var(--tk-accent);
+}
+
+/*
+ * The row you have PICKED but not yet committed to — the selected game in a
+ * new-game list, waiting on the Start button under it.
+ *
+ * Border AND a tint, not one or the other. This is read at a card table in bad
+ * light, held at arm's length, and a border alone at `--tk-border-w: 1px` is
+ * invisible at that distance in an app that draws every row with a border
+ * already. The tint is what tells you which one is armed before you commit.
+ *
+ * `color-mix` against the row's own ground rather than a token of its own: the
+ * selection has to work over whatever a game sets its rows to, and asking every
+ * app to hand-pick a fifth surface colour is how two apps drift apart.
+ */
+.row.chosen {
+  border-color: var(--tk-primary);
+  background: color-mix(in srgb, var(--tk-primary) 16%, var(--tk-row-bg));
+  /* The unpicked rows are the ones that have to recede. */
+  font-weight: var(--tk-chrome-weight);
+}
+
+.row.chosen .row-note {
+  color: var(--tk-ink);
 }
 
 .big-list .row {
