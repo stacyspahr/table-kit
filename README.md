@@ -83,6 +83,38 @@ score regardless of who is winning. `winner` only decides who is on top when it
 does. Conflating the two is the bug waiting to happen when a lowest-wins game
 inherits a highest-wins hook.
 
+### Taking a seat
+
+The roster never shrinks — every name ever typed at a host's table stays on it,
+because that is what joins a returning player to their lifetime stats. Left
+unfiltered it becomes a scroll. `seatChoices` decides what the claim screen
+shows; the app draws it.
+
+```ts
+import { rememberSeat, recalledSeats, seatChoices } from 'table-kit'
+
+const { suggested, reclaimable, list, hiddenCount, searchable } = seatChoices({
+  roster,            // this host's roster, in whatever order the app fetched it
+  seated,            // who is already at this table
+  recalled: recalledSeats('heat'),
+  query,             // the search box, '' when idle
+})
+```
+
+**Call `rememberSeat` on both claim paths** — a new seat and a reclaimed one.
+Reclaim is the more reliable statement of the two, and missing it is why a
+regular would keep getting the long list.
+
+```ts
+rememberSeat('heat', { id: rosterEntryId, display_name: name })
+```
+
+`id` is optional: a typed-in name has no roster entry yet (the server hook
+creates it after the seat), so matching falls back to the name.
+
+Available as `table-kit/roster` too — pure logic, no PocketBase — for an app
+that has not adopted the kit core.
+
 ## Version tracking
 
 Each app writes a `version.json` at build time recording the kit version it was

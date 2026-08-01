@@ -7,6 +7,31 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.4.0
+
+Finding yourself on the seat-claim screen. The roster is permanent and never
+stops growing, which is right for lifetime stats and wrong for a phone: after a
+season, sitting down means scrolling past everyone who has ever played.
+
+- Added: `rememberSeat(appKey, seat)` and `recalledSeats(appKey)`. The phone
+  records who sat down on it, so a regular arriving on their usual handset gets
+  a one-tap button instead of a list. This is the fix that matters — almost
+  everyone comes back on the same phone.
+- Added: `seatChoices({roster, seated, recalled, query, limit})`. Returns
+  `suggested` (what this phone knows), `reclaimable` (a seat already at this
+  table matching what it knows — a host-added seat waiting for its player, or
+  one they were in before), a `list` capped at `limit`, and `hiddenCount`.
+- Added: search. `query` filters the whole roster, uncapped, with names that
+  start with what was typed ranked above names that merely contain it.
+- Added: `forgetSeats(appKey)`, for a "not me" escape hatch.
+- Memory is per app key and best-effort: evicted storage degrades to the full
+  list, never to a locked-out player. Anyone already sitting is dropped from
+  the roster side entirely, so a returning player takes their seat back rather
+  than opening a second one under the same name.
+- Also importable as `table-kit/roster` — it is pure logic with no PocketBase
+  in it, so an app that has not adopted the kit core can still take it.
+- No markup, as ever. The kit ships the decisions; each game draws them.
+
 ## v0.3.0
 
 The awards engine — the "capture the fun" layer, minus any opinion about what
