@@ -85,6 +85,13 @@
   --tk-screen-pad-bottom: 1.5rem;
   --tk-gap: 1rem;
 
+  --tk-qr-surface: #ffffff;
+  --tk-qr-ink: #000000;
+  --tk-qr-title: var(--tk-qr-ink);
+  --tk-qr-help-ink: #5b5449;
+  --tk-qr-gap: 1.25rem;
+  --tk-qr-max: 320px;
+
   --tk-list-gap: 0.5rem;
   --tk-row-bg: var(--tk-surface);
   --tk-row-radius: 12px;
@@ -133,6 +140,73 @@
 
 .screen.center {
   justify-content: center;
+}
+
+/* ── the join code ───────────────────────────────────────────────────────
+ *
+ * A LIGHT CARD ON THE APP'S OWN GROUND — not a white screen.
+ *
+ * The two apps had different answers and the same reason written above both:
+ * this gets scanned across a table, at an angle, often in bad light. But the
+ * contrast a camera actually needs comes from the code's own black-on-white
+ * and its quiet zone, NOT from the rest of the screen — so turning the whole
+ * display white bought very little, and cost the app its face at the one
+ * moment a stranger is pointing a phone at it. It is also a bright flash in a
+ * dim room, which is where these games get played.
+ *
+ * The card is the quiet zone's backing, so it stays light. Everything around
+ * it stays the game's.
+ */
+.qr-screen {
+  min-height: 100svh;
+  max-width: var(--tk-screen-max);
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + var(--tk-screen-pad-top))
+    calc(env(safe-area-inset-right) + var(--tk-screen-pad-x))
+    calc(env(safe-area-inset-bottom) + var(--tk-screen-pad-bottom))
+    calc(env(safe-area-inset-left) + var(--tk-screen-pad-x));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--tk-qr-gap);
+}
+
+.qr-card {
+  background: var(--tk-qr-surface);
+  color: var(--tk-qr-ink);
+  border-radius: var(--tk-card-radius);
+  padding: var(--tk-card-pad);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-card-gap);
+}
+
+.qr-card h2 {
+  margin: 0;
+  color: var(--tk-qr-title);
+}
+
+/* Sized against the CARD, not the viewport. Flip 7 used to say 88vw, which was
+   right when the code sat on a full-bleed white screen and wrong the moment it
+   sat inside something with padding — at narrow widths it grew straight
+   through the card's edges. */
+.qr-code {
+  width: 100%;
+  max-width: var(--tk-qr-max);
+  margin: 0 auto;
+}
+
+.qr-code svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.qr-help {
+  margin: 0;
+  font-size: var(--tk-note-size);
+  color: var(--tk-qr-help-ink);
 }
 
 /* ── cards ───────────────────────────────────────────────────────────────
