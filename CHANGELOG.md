@@ -7,6 +7,47 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.5.2
+
+Nothing an app can call changed — this is a housekeeping release, tagged so
+`kit-status` stops reporting untagged work that apps can never install.
+
+- Added: five tests pinning the auth-store key names. `${appKey}_host` and
+  `${appKey}_guest` are a contract with every phone already carrying a session,
+  not an implementation detail: rename one and every host is signed out, and
+  getting back in means waiting on an emailed code — which at a table on a
+  Friday night is the end of the game. Flip 7's migration onto `createKit` was
+  only safe because `${appKey}_host` lands on exactly the `flip7_host` its
+  hand-rolled clients used.
+- Docs: v0.5.0 and v0.5.1 shipped as tags without changelog entries. Both are
+  written up below now.
+
+## v0.5.1
+
+- Added: `guest` on `PlayerRec`. Both games' players collections have carried
+  the column since the day they were created; the kit simply never modelled it,
+  because Beat the Heat's client never reads it. Flip 7's does — it is how a
+  returning phone works out which seat is already its own, alongside
+  `device_id`. Nothing changed in the database. Only the type was missing.
+
+## v0.5.0
+
+The join QR becomes the kit's. It was the same component in both games,
+differing by a share-sheet title and two comments — which is how its quiet zone
+came to be wrong in both at once.
+
+- Added: `table-kit/react`, a NEW entry point, and `QrPanel` in it. The core
+  stays framework-free: seats, sync, the offline queue and the awards engine
+  have no business knowing what renders them, and importing the core must not
+  pull React in behind it. Import this module and you need `react` and
+  `qrcode`; import the core and you need neither — they are optional peers for
+  exactly that reason.
+- Added: `gameName` on `QrPanel`, the one genuine difference between the two
+  copies. It fills the share sheet's "Join the … game", so each app names
+  itself once rather than at every call site.
+- The panel arrives wearing whichever game imported it — every class it renders
+  is the kit's own, in the `.qr-*` block of `styles.css`.
+
 ## v0.4.0
 
 Finding yourself on the seat-claim screen. The roster is permanent and never
