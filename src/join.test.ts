@@ -272,3 +272,32 @@ describe('reclaimSeat', () => {
     })
   })
 })
+
+describe('a seat for someone with no phone', () => {
+  it('carries neither a device nor a credential', async () => {
+    // That absence IS the mark of an unclaimed seat, and it is what lets
+    // anyone at the table enter for it.
+    const { pb, created } = fakePb({ nine_players: { list: [] } })
+    await claimSeat({
+      pb,
+      config,
+      gameId: 'g1',
+      deviceId: '',
+      displayName: 'Grandpa',
+      round: 1,
+    })
+    expect(created[0]!.data).toMatchObject({ display_name: 'Grandpa', seat_order: 0 })
+    expect('device_id' in created[0]!.data).toBe(false)
+    // ⚠️ Writing the HOST's credential here would read as claimed by the host's
+    // phone, and the seat could then never be taken over by its actual player.
+    expect('guest' in created[0]!.data).toBe(false)
+  })
+
+  it('still walks past a collision, same as any other seat', async () => {
+    const { pb, created } = fakePb({
+      nine_players: { list: [player('p1', { seat_order: 0 })], createFailsUntil: 1 },
+    })
+    await claimSeat({ pb, config, gameId: 'g1', deviceId: '', displayName: 'Nana', round: 1 })
+    expect(created.map((c) => c.data.seat_order)).toEqual([1, 2])
+  })
+})

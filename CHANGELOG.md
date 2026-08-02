@@ -7,6 +7,18 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.14.0
+
+- Changed: `claimSeat` with an EMPTY `deviceId` makes a phoneless seat — no
+  `device_id` and no `guest`. That absence is what marks a seat unclaimed, and
+  it is what lets anyone at the table enter for it or take it over later.
+- Why it is the same function rather than a second one: a phoneless player is a
+  seat like any other and appears in `waitingOn` like any other, which is what
+  stops them being quietly forgotten at the end of a round. A separate code
+  path is exactly how that guarantee gets lost. It also removes a second copy
+  of the collision retry, which both apps' host lobbies were carrying.
+- Widening only — passing a device id behaves exactly as before.
+
 ## v0.13.1
 
 - Fixed: an unused import left the repo's `typecheck` failing. The published

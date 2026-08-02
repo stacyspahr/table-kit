@@ -116,6 +116,17 @@ export async function bootstrapJoin<G extends GameRec>({
  * the player list this screen loaded with is stale the instant anyone else
  * claims. Re-read first, then walk the seat number up past collisions rather
  * than handing the player a button that just fails.
+ *
+ * ── An EMPTY `deviceId` makes a phoneless seat ───────────────────────────
+ * The host adds one from the lobby for someone playing without a phone. It is
+ * deliberately the same function and the same retry: a phoneless player is a
+ * seat like any other, they appear in `waitingOn` like any other, and so they
+ * cannot be quietly forgotten at the end of a round. A second code path is
+ * exactly how they would be.
+ *
+ * An unclaimed seat carries neither `device_id` nor `guest` — that absence IS
+ * the mark of it being unclaimed, and it is what lets anyone at the table
+ * enter for it, or take it over later through `reclaimSeat`.
  */
 export async function claimSeat({
   pb,
@@ -130,6 +141,7 @@ export async function claimSeat({
   pb: PocketBase
   config: TableKitConfig
   gameId: string
+  /** Empty makes an unclaimed seat — someone playing without a phone. */
   deviceId: string
   displayName: string
   round: number
@@ -159,10 +171,12 @@ export async function claimSeat({
         game: gameId,
         display_name: trimmed,
         seat_order: seat,
-        device_id: deviceId,
-        guest: pb.authStore.record?.id,
         // A latecomer owes nothing for rounds that ran before they sat down.
         joined_round: round,
+        // Both omitted for a phoneless seat. Writing the HOST's credential onto
+        // one would be actively wrong: it would read as claimed by the host's
+        // phone, and the seat could never be taken over by its actual player.
+        ...(deviceId ? { device_id: deviceId, guest: pb.authStore.record?.id } : {}),
         ...(rosterEntry ? { roster_entry: rosterEntry } : {}),
       })
     } catch (e) {
