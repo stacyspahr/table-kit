@@ -7,6 +7,40 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.12.0
+
+The screens with no game in them move into the kit, so a third app stops being
+a third copy.
+
+- Added to `table-kit/react`: `UpdateBanner`, `HostLogin`, `NoAccess`,
+  `Pending`, `InviteHost`. All take the app's PocketBase client and its name as
+  props; `HostLogin` takes the app's own lockup as `brand`, because a sign-in
+  page that introduces the app differently from the app is where "which one is
+  this again" starts.
+- Added to the core: `reveal.ts` — `RevealRow`, `totalsAsOf`, `rowsForRound`,
+  `revealLayout`. The leaderboard re-sort, which both apps had their own
+  character-identical copy of.
+- `revealLayout` now takes `{ winner, rowHeight, gap }`. Those were the ONLY
+  differences between the two copies: Beat the Heat sorted ascending at 68px
+  rows, Flip 7 descending at 56px.
+- `rowsForRound` reads a round that is still in `review`, deliberately.
+  Requiring `closed` would mean every row's `after` equalled its `before` and
+  nothing ever moved — the reveal plays before the round closes.
+- The drift this was fixing, as evidence it was real: Beat the Heat's update
+  banner used the kit's `watchForUpdates`; Flip 7's still carried its own copy
+  of the polling loop. A fix to one was not a fix to the other.
+- The iOS share-sheet ordering in `InviteHost` is now covered by a test that
+  asserts `navigator.share` is called BEFORE the create is awaited. Await first
+  and the activation window has closed and the sheet silently never opens.
+  Both apps learned that the hard way; now it can only be learned once.
+
+NOT extracted, and the reason matters: `JoinScreen`. The two versions differ by
+about half, and not only because Flip 7 is behind — `f7_roster` carries
+`games_count` / `last_played` / `active` where `heat_roster` carries `retired`.
+Sharing it means deciding which roster shape wins, which is a design decision
+rather than a move. Same test the design system already applies to `.tick` and
+`.pill`.
+
 ## v0.11.0
 
 A game can end after a fixed number of rounds — and can tell it is on the last
