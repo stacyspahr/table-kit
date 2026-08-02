@@ -684,3 +684,13 @@ select:focus {
 .tk-ring-head {
   stroke: currentColor;
 }
+
+/* A button holding a countdown becomes a row. Scoped with :has() so no app has
+   to add a modifier class, and so a button WITHOUT a ring keeps the plain
+   block layout it has always had. */
+.btn:has(.tk-ring) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}

@@ -7,6 +7,14 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.20.1
+
+- Fixed: `.btn` is `display: block`, so a `CountdownRing` inside one sat on the
+  text's baseline instead of beside it. A button containing a ring is now a
+  centred flex row, scoped with `:has()` so no app needs a modifier class and a
+  button without a ring keeps the block layout it always had.
+- Button height is unchanged with the ring in place — measured, not assumed.
+
 ## v0.20.0
 
 Four playability fixes off a real game night.
