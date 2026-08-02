@@ -60,6 +60,27 @@
   --tk-chrome-weight: 700;
   --tk-chrome-tracking: 0;
 
+  /* Form fields. In the kit because the kit now SHIPS screens that render
+     them — HostLogin, SeatClaim, InviteHost — and a component whose inputs are
+     unstyled unless the app happens to have the right rules is a component
+     that only works by luck.
+
+     The label's case is a declared per-app trait, exactly like chrome case:
+     Beat the Heat sets uppercase, Flip 7 and Play Nine leave it alone. */
+  --tk-label-ink: var(--tk-muted);
+  --tk-label-size: 0.78rem;
+  --tk-label-weight: 700;
+  --tk-label-case: uppercase;
+  --tk-label-tracking: 0.08em;
+  --tk-label-gap: 6px;
+
+  --tk-field-bg: var(--tk-surface);
+  --tk-field-ink: var(--tk-ink);
+  --tk-field-border: var(--tk-line);
+  --tk-field-border-w: 2px;
+  --tk-field-radius: var(--tk-radius);
+  --tk-field-focus: var(--tk-accent);
+
   /* House minimums. Both apps are used one-handed, mid-game, in bad light. */
   --tk-tap: 52px;
   --tk-tap-big: 60px;
@@ -574,4 +595,54 @@ button.row:disabled {
   .btn {
     transition: none;
   }
+}
+
+
+/* ── form fields ─────────────────────────────────────────────────────────
+ *
+ * A label sits ABOVE its field, never beside it. Inline labels put the field
+ * at a different x-position on every row, so the eye has to re-find it each
+ * time — and at a card table nobody is giving a form that much attention.
+ *
+ * The field is full width and at least a thumb tall, for the same reason
+ * every other tap target here is.
+ */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-label-gap);
+  font-size: var(--tk-label-size);
+  font-weight: var(--tk-label-weight);
+  text-transform: var(--tk-label-case);
+  letter-spacing: var(--tk-label-tracking);
+  color: var(--tk-label-ink);
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  width: 100%;
+  font-size: 1.05rem;
+  padding: 14px;
+  min-height: var(--tk-tap);
+  border-radius: var(--tk-field-radius);
+  border: var(--tk-field-border-w) solid var(--tk-field-border);
+  background: var(--tk-field-bg);
+  color: var(--tk-field-ink);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--tk-field-focus);
+  outline-offset: 1px;
+}
+
+/* The six-digit sign-in code. Spaced out because it is read off a phone
+   notification and typed one character at a time. */
+.code-input {
+  font-size: 1.6rem;
+  letter-spacing: 0.35em;
+  text-align: center;
 }

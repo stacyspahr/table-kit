@@ -7,6 +7,21 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.15.0
+
+- Added to `styles.css`: `label`, `input`, `textarea`, `select`, `.code-input`,
+  and the `--tk-label-*` / `--tk-field-*` tokens behind them.
+- Why: v0.12–v0.13 moved screens that RENDER form fields into the kit
+  (`HostLogin`, `SeatClaim`, `InviteHost`) while leaving the fields themselves
+  unstyled. A new app got an inline label beside a shrink-to-fit input — the
+  component only looked right in an app that happened to already have the
+  rules. Shipping a component without its bones is shipping it broken.
+- The label's case is a declared per-app trait, like chrome case. The default
+  is Beat the Heat's uppercase, so nothing changes for an app that adopts this;
+  Play Nine sets `--tk-label-case: none`.
+- A label sits ABOVE its field, never beside it. Inline labels put the field at
+  a different x-position on every row, so the eye re-finds it each time.
+
 ## v0.14.0
 
 - Changed: `claimSeat` with an EMPTY `deviceId` makes a phoneless seat — no
