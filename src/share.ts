@@ -67,6 +67,12 @@ export interface CardCell {
   text: string
   /** Overrides the cell ink. Omitted, it takes `theme.ink`. */
   color?: string
+  /**
+   * Degrees of tilt, for a game that writes its numbers rather than setting
+   * them. The kit supplies no angle of its own and no randomness — a card that
+   * re-rolled its own wobble would not match the screen it was rendered from.
+   */
+  tilt?: number
 }
 
 export interface CardGridRow {
@@ -180,6 +186,28 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[
   return lines
 }
 
+/** One number, in its box, at whatever angle the game asked for. */
+function writeCell(
+  ctx: CanvasRenderingContext2D,
+  cell: CardCell,
+  cx: number,
+  y: number,
+  theme: CardTheme,
+): void {
+  ctx.fillStyle = cell.color ?? theme.ink
+  if (!cell.tilt) {
+    ctx.fillText(cell.text, cx, y)
+    return
+  }
+  // Rotated about the number itself rather than the canvas origin, or a 3°
+  // tilt at the right-hand edge of the card becomes a 30px shift.
+  ctx.save()
+  ctx.translate(cx, y)
+  ctx.rotate((cell.tilt * Math.PI) / 180)
+  ctx.fillText(cell.text, 0, 0)
+  ctx.restore()
+}
+
 /**
  * The round-by-round block, drawn as boxes on a card.
  *
@@ -250,13 +278,11 @@ function drawGrid(
     ctx.font = `400 34px ${cellFont}`
     ctx.textAlign = 'center'
     row.cells.slice(0, cols).forEach((cell, i) => {
-      ctx.fillStyle = cell.color ?? theme.ink
-      ctx.fillText(cell.text, x0 + nameW + colW * i + colW / 2, y)
+      writeCell(ctx, cell, x0 + nameW + colW * i + colW / 2, y, theme)
     })
 
     const totalX = x0 + nameW + colW * cols + totalW / 2
-    ctx.fillStyle = row.total.color ?? theme.ink
-    ctx.fillText(row.total.text, totalX, y)
+    writeCell(ctx, row.total, totalX, y, theme)
 
     // The way you would circle it. The only ink on the card that isn't a number.
     if (row.won && grid.ringWinner) {

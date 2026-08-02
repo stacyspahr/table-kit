@@ -47,6 +47,8 @@ function stubCanvas() {
     lineWidth: 0,
     ellipse: vi.fn(),
     stroke: vi.fn(),
+    translate: vi.fn(),
+    rotate: vi.fn(),
     // 14px a character is close enough to real proportional text for the
     // wrapping and overflow maths to behave the way they will in a browser.
     measureText: (t: string) => ({ width: t.length * 14 }),
@@ -260,6 +262,18 @@ describe('renderCard with a grid', () => {
     const text = asText()
     expect(text).toContain('Player6')
     expect(text).toContain('THE BIG WOOD')
+  })
+
+  it('writes a tilted number at its own angle and puts the pen back', async () => {
+    // The wobble comes from the game, seeded per cell, so the picture matches
+    // the screen it was rendered from. All the kit does is honor it — and it
+    // must restore the canvas, or every stroke after the first tilt is skewed.
+    const s = gridSpec(2, 3)
+    s.grid!.rows[0]!.cells[0]!.tilt = -3
+    await renderCard(s)
+    expect(pen.rotate).toHaveBeenCalledWith((-3 * Math.PI) / 180)
+    expect(pen.restore).toHaveBeenCalled()
+    expect(asText()).toContain('Player1')
   })
 
   it('still draws a short game — three holes is a grid too', async () => {
