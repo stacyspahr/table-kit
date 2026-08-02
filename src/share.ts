@@ -54,6 +54,54 @@ export interface CardAward {
   blurb: string
 }
 
+/**
+ * One number in a box.
+ *
+ * ⚠️ The color is the GAME's, never the kit's. Play Nine writes a negative
+ * hole in red because golf prints under par in red and here the negatives are
+ * the good scores; a kit that decided "negative means red" would be stating
+ * that opinion on behalf of every scorer it ever draws, and it would be wrong
+ * the first time a game counted downward.
+ */
+export interface CardCell {
+  text: string
+  /** Overrides the cell ink. Omitted, it takes `theme.ink`. */
+  color?: string
+}
+
+export interface CardGridRow {
+  name: string
+  /** One per column, in column order. */
+  cells: CardCell[]
+  total: CardCell
+  /** Winners are drawn in the accent, and ringed if the grid asks for it. */
+  won: boolean
+}
+
+/**
+ * The board drawn round by round instead of as one line per player.
+ *
+ * A scorer whose rounds are worth looking at individually — nine holes of golf,
+ * where the −20 on hole six is the story — hands this instead of `board`. One
+ * that only has a running total (peppers eaten, points to 66) keeps `board`,
+ * which stays the default because a grid of one column is not a grid.
+ */
+export interface CardGrid {
+  /** Over the name column. "player". */
+  nameLabel: string
+  /** One heading per round. "1".."9". */
+  columns: string[]
+  /** Over the last column. "tot". */
+  totalLabel: string
+  rows: CardGridRow[]
+  /** The ink for the printed labels, as against the ink in the boxes. */
+  printed?: string
+  /** The numbers, when the game writes them in something else. */
+  cellFont?: string
+  /** Ring the winning total, the way somebody at the table would. */
+  ringWinner?: boolean
+}
+
 export interface CardSpec {
   wordmark: string
   /**
@@ -70,8 +118,17 @@ export interface CardSpec {
   winnerName: string
   /** The game's own sentence, verbatim. */
   winnerLine: string
-  /** Every seat, including the phoneless ones. The board is what people argue about. */
-  board: CardRow[]
+  /**
+   * Every seat, including the phoneless ones. The board is what people argue
+   * about.
+   *
+   * One of `board` or `grid`, never both — they are two drawings of the same
+   * block, and a card carrying each would say the totals twice. `grid` wins if
+   * a caller passes both.
+   */
+  board?: CardRow[]
+  /** The round-by-round board, for a game whose rounds are worth reading. */
+  grid?: CardGrid
   awards: CardAward[]
   theme: CardTheme
   /** Usually `/icon-192.png` — already cached, so this costs no network. */
@@ -121,6 +178,113 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[
   }
   if (line) lines.push(line)
   return lines
+}
+
+/**
+ * The round-by-round block, drawn as boxes on a card.
+ *
+ * ── Why the columns are capped ───────────────────────────────────────────
+ * Nine holes across a 936px card give 70px boxes, which is about right. Three
+ * holes given the same width give 230px boxes with a two-character number
+ * floating in the middle of each, which reads as a mistake rather than as a
+ * short game. So a box has a maximum size and a short grid is centred in the
+ * room it does not need.
+ *
+ * ── Why the name column is measured ──────────────────────────────────────
+ * The suite's one hard layout rule is that a name is never squeezed. The name
+ * column is therefore as wide as the longest name at the table, and it is the
+ * boxes that give way — up to the point where the boxes would stop being
+ * legible, after which the name is allowed to run under its own row instead.
+ *
+ * Returns the y of the first baseline below the block.
+ */
+function drawGrid(
+  ctx: CanvasRenderingContext2D,
+  grid: CardGrid,
+  theme: CardTheme,
+  top: number,
+  rowStep: number,
+): number {
+  const cellFont = grid.cellFont ?? theme.font
+  const printed = grid.printed ?? theme.muted
+  const cols = grid.columns.length
+
+  ctx.font = `500 30px ${theme.font}`
+  const widest = grid.rows.reduce((w, r) => Math.max(w, ctx.measureText(r.name).width), 0)
+  const nameW = Math.min(300, Math.max(150, widest + 24))
+  const totalW = 118
+  const colW = Math.min(104, Math.max(46, (W - PAD * 2 - nameW - totalW) / cols))
+  const gridW = nameW + colW * cols + totalW
+  const x0 = Math.round((W - gridW) / 2)
+
+  // Every vertical boundary: after the name, between the boxes, before the total.
+  const edges: number[] = [x0 + nameW]
+  for (let i = 1; i <= cols; i += 1) edges.push(x0 + nameW + colW * i)
+
+  let y = top
+  const baselines: number[] = []
+  ctx.textBaseline = 'alphabetic'
+
+  // ── the printed headings ──────────────────────────────────────────────
+  ctx.font = `700 22px ${theme.font}`
+  ctx.fillStyle = printed
+  ctx.textAlign = 'left'
+  ctx.fillText(grid.nameLabel, x0 + 4, y)
+  ctx.textAlign = 'center'
+  grid.columns.forEach((label, i) => {
+    ctx.fillText(label, x0 + nameW + colW * i + colW / 2, y)
+  })
+  ctx.fillText(grid.totalLabel, x0 + nameW + colW * cols + totalW / 2, y)
+
+  const gridTop = y + 14
+  y += 40
+
+  // ── the numbers ───────────────────────────────────────────────────────
+  for (const row of grid.rows) {
+    baselines.push(y)
+    ctx.font = `500 30px ${theme.font}`
+    ctx.fillStyle = row.won ? theme.accent : theme.ink
+    ctx.textAlign = 'left'
+    ctx.fillText(row.name, x0 + 4, y)
+
+    ctx.font = `400 34px ${cellFont}`
+    ctx.textAlign = 'center'
+    row.cells.slice(0, cols).forEach((cell, i) => {
+      ctx.fillStyle = cell.color ?? theme.ink
+      ctx.fillText(cell.text, x0 + nameW + colW * i + colW / 2, y)
+    })
+
+    const totalX = x0 + nameW + colW * cols + totalW / 2
+    ctx.fillStyle = row.total.color ?? theme.ink
+    ctx.fillText(row.total.text, totalX, y)
+
+    // The way you would circle it. The only ink on the card that isn't a number.
+    if (row.won && grid.ringWinner) {
+      const w = ctx.measureText(row.total.text).width
+      ctx.save()
+      ctx.strokeStyle = row.total.color ?? theme.ink
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.ellipse(totalX, y - 11, Math.max(26, w / 2 + 14), 24, 0, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    y += rowStep
+  }
+
+  // ── the boxes, drawn last so no number sits on a line ─────────────────
+  const gridBottom = (baselines[baselines.length - 1] ?? gridTop) + 16
+  ctx.fillStyle = theme.rule
+  ctx.fillRect(x0, gridTop, gridW, 1)
+  ctx.fillRect(x0, gridBottom, gridW, 1)
+  // Off each baseline rather than evenly through the block, so a line never
+  // lands across the tops of a row of numbers.
+  for (const b of baselines.slice(1)) ctx.fillRect(x0, b - 34, gridW, 1)
+  for (const x of edges) ctx.fillRect(x, gridTop, 1, gridBottom - gridTop)
+
+  ctx.textAlign = 'center'
+  return y
 }
 
 function loadMark(url: string): Promise<HTMLImageElement | null> {
@@ -220,10 +384,17 @@ export async function renderCard(spec: CardSpec): Promise<Blob> {
   const awardsHeight = (list: typeof awards) =>
     list.reduce((sum, a) => sum + 36 + (a.who ? 34 : 0) + a.lines.length * 34 + 20, 0)
 
+  // One block or the other, never both — a card carrying a grid AND a board
+  // would print every total twice.
+  const grid = spec.grid
+  const board = grid ? [] : (spec.board ?? [])
+  const seats = grid ? grid.rows.length : board.length
+  // The grid pays for its row of printed headings; the board has none.
+  const boardHeight = () => (grid ? 40 : 0) + seats * rowStep
+
   // Headline block, board block, awards block — everything below the lockup.
   const bodyHeight = () =>
-    54 + 32 + 88 + winnerLines.length * 40 + 70 + spec.board.length * rowStep + 56 +
-    awardsHeight(awards)
+    54 + 32 + 88 + winnerLines.length * 40 + 70 + boardHeight() + 56 + awardsHeight(awards)
 
   const room = H - PAD - y
 
@@ -267,16 +438,20 @@ export async function renderCard(spec: CardSpec): Promise<Blob> {
   ctx.fillRect(PAD, y, W - PAD * 2, 2)
   y += 44
 
-  for (const row of spec.board) {
-    ctx.font = `${row.won ? 700 : 500} 34px ${theme.font}`
-    ctx.textAlign = 'left'
-    ctx.fillStyle = row.won ? theme.accent : theme.muted
-    ctx.fillText(String(row.place), PAD, y)
-    ctx.fillStyle = row.won ? theme.ink : theme.muted
-    ctx.fillText(row.name, PAD + 56, y)
-    ctx.textAlign = 'right'
-    ctx.fillText(row.score, W - PAD, y)
-    y += rowStep
+  if (grid) {
+    y = drawGrid(ctx, grid, theme, y, rowStep)
+  } else {
+    for (const row of board) {
+      ctx.font = `${row.won ? 700 : 500} 34px ${theme.font}`
+      ctx.textAlign = 'left'
+      ctx.fillStyle = row.won ? theme.accent : theme.muted
+      ctx.fillText(String(row.place), PAD, y)
+      ctx.fillStyle = row.won ? theme.ink : theme.muted
+      ctx.fillText(row.name, PAD + 56, y)
+      ctx.textAlign = 'right'
+      ctx.fillText(row.score, W - PAD, y)
+      y += rowStep
+    }
   }
 
   // ── the honors ────────────────────────────────────────────────────────

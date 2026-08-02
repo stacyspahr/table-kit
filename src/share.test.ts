@@ -26,6 +26,8 @@ const theme = {
 
 /** Every string that reached the canvas, in draw order. */
 let drawn: string[] = []
+/** The stub context itself, for the few things drawn without any text. */
+let pen: any
 
 function stubCanvas() {
   drawn = []
@@ -41,11 +43,16 @@ function stubCanvas() {
     save: vi.fn(),
     restore: vi.fn(),
     drawImage: vi.fn(),
+    strokeStyle: '',
+    lineWidth: 0,
+    ellipse: vi.fn(),
+    stroke: vi.fn(),
     // 14px a character is close enough to real proportional text for the
     // wrapping and overflow maths to behave the way they will in a browser.
     measureText: (t: string) => ({ width: t.length * 14 }),
     fillText: (t: string) => drawn.push(t),
   }
+  pen = ctx
   vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
     if (tag !== 'canvas') return {} as any
     return {
@@ -181,6 +188,83 @@ describe('renderCard', () => {
     await renderCard(spec({ theme: { ...theme, chromeCase: 'none' } }))
     expect(asText()).toContain('Stacy')
     expect(asText()).toContain("That's the game")
+  })
+})
+
+describe('renderCard with a grid', () => {
+  beforeEach(stubCanvas)
+
+  const gridSpec = (rows: number, cols: number, over: Partial<CardSpec> = {}): CardSpec =>
+    spec({
+      board: undefined,
+      grid: {
+        nameLabel: 'player',
+        columns: Array.from({ length: cols }, (_, i) => String(i + 1)),
+        totalLabel: 'tot',
+        ringWinner: true,
+        rows: Array.from({ length: rows }, (_, r) => ({
+          name: `Player${r + 1}`,
+          cells: Array.from({ length: cols }, (_, c) => ({ text: String(c + 1) })),
+          total: { text: String(40 + r) },
+          won: r === 0,
+        })),
+      },
+      ...over,
+    })
+
+  it('draws every hole of every player, plus the printed headings', async () => {
+    await renderCard(gridSpec(4, 9))
+    const text = asText()
+    expect(text).toContain('player')
+    expect(text).toContain('tot')
+    for (let i = 1; i <= 4; i++) expect(text).toContain(`Player${i}`)
+    // Nine headings and nine numbers a row — the whole point of the grid.
+    expect(text).toContain('9')
+    expect(text).toContain('40')
+    expect(text).toContain('43')
+  })
+
+  it('rings the winning total, and only the winning total', async () => {
+    await renderCard(gridSpec(4, 9))
+    expect(pen.ellipse).toHaveBeenCalledOnce()
+  })
+
+  it('leaves the ring off when the game does not ask for it', async () => {
+    const s = gridSpec(4, 9)
+    s.grid!.ringWinner = false
+    await renderCard(s)
+    expect(pen.ellipse).not.toHaveBeenCalled()
+  })
+
+  it('draws the grid instead of the board when a caller passes both', async () => {
+    // Two drawings of the same block would print every total twice.
+    await renderCard(
+      gridSpec(2, 9, {
+        board: [{ place: 1, name: 'FromTheBoardBlock', score: '213', won: true }],
+      }),
+    )
+    expect(asText()).not.toContain('FromTheBoardBlock')
+  })
+
+  it('fits a full table over nine holes with awards still on the card', async () => {
+    // The card this game actually produces: six seats, nine holes, and the
+    // honors underneath. If this one overflows, nothing else matters.
+    await renderCard(
+      gridSpec(6, 9, {
+        awards: [
+          { title: 'Never Up Never In', who: 'Zak', blurb: 'Left it short four times.' },
+          { title: 'The Big Wood', who: 'Stacy', blurb: 'Went red on the sixth.' },
+        ],
+      }),
+    )
+    const text = asText()
+    expect(text).toContain('Player6')
+    expect(text).toContain('THE BIG WOOD')
+  })
+
+  it('still draws a short game — three holes is a grid too', async () => {
+    await renderCard(gridSpec(2, 3))
+    expect(asText()).toContain('Player2')
   })
 })
 
