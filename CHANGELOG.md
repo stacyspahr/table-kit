@@ -7,6 +7,12 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.13.1
+
+- Fixed: an unused import left the repo's `typecheck` failing. The published
+  v0.13.0 package is unaffected — `tsconfig.build.json` excludes test files, so
+  `dist/` was byte-identical — but a red typecheck on main is a red typecheck.
+
 ## v0.13.0
 
 Joining a game night is the kit's, all the way to the seat.

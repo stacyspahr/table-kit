@@ -6,7 +6,7 @@
  * phone reloading itself mid-game because iOS discarded the tab.
  */
 
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { bootstrapJoin, claimSeat, reclaimSeat } from './join.js'
 import type { TableKitConfig } from './config.js'
 import type { PlayerRec } from './state.js'
