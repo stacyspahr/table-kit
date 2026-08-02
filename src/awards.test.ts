@@ -137,7 +137,7 @@ describe('runAwards', () => {
     expect(won(run, 'steady').blurb).toBe('a and c')
   })
 
-  it('honours `when` and keeps the definition order', () => {
+  it('honors `when` and keeps the definition order', () => {
     const c = ctx([sub('r1', 'a', 3), sub('r1', 'b', 12)])
     const never = { ...biggest, key: 'never', when: () => false }
 

@@ -246,7 +246,7 @@ describe('inviting a host', () => {
     expect(order).toEqual(['create-started', 'share'])
     resolveCreate({ id: 'i1' })
 
-    // And the address is normalised, so the grant matches at signup.
+    // And the address is normalized, so the grant matches at signup.
     await waitFor(() => expect(screen.getByText('friend@example.com')).toBeTruthy())
   })
 
@@ -262,7 +262,7 @@ describe('inviting a host', () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(props.url))
   })
 
-  it('keeps the invite even when the share is cancelled', async () => {
+  it('keeps the invite even when the share is canceled', async () => {
     stub('share', vi.fn().mockRejectedValue(new Error('AbortError')))
     const { pb, calls } = fakePb()
     render(<InviteHost pb={pb} {...props} />)

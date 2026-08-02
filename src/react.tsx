@@ -430,7 +430,7 @@ export function InviteHost({
       if (navigator.share) await navigator.share({ title: appName, text, url })
       else await navigator.clipboard.writeText(url)
     } catch {
-      /* share cancelled — the invite is still saved */
+      /* share canceled — the invite is still saved */
     }
     try {
       await createP

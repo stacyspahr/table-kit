@@ -92,7 +92,7 @@ describe('bootstrapJoin', () => {
     expect(r.seated?.id).toBe('p1')
   })
 
-  it('recognises the seat by its guest credential too', async () => {
+  it('recognizes the seat by its guest credential too', async () => {
     // device_id can change when a guest credential is reissued; either
     // statement of "this phone holds this seat" counts.
     const mine = player('p1', { guest: 'guest1', device_id: 'old-device' })

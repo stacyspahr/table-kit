@@ -147,7 +147,7 @@ describe('revealLayout', () => {
     expect(ordered.map((r) => r.player.id)).toEqual(['ann', 'bo', 'cy'])
   })
 
-  it('offsets each row by how far it travelled, in whole rows', () => {
+  it('offsets each row by how far it traveled, in whole rows', () => {
     // lowest-wins. before: ann 10, cy 12, bo 14 → after: cy 12, bo 15, ann 19.
     // ann falls from slot 0 to slot 2, so she starts two rows ABOVE where she
     // will end up: (0 - 2) * 76 = -152.
@@ -157,7 +157,7 @@ describe('revealLayout', () => {
     expect(offsets.get('bo')).toBe(76)
   })
 
-  it('honours the row height it is given', () => {
+  it('honors the row height it is given', () => {
     const { offsets } = revealLayout(rows, { winner: 'lowest', rowHeight: 56, gap: 8 })
     expect(offsets.get('ann')).toBe(-128)
   })

@@ -6,7 +6,7 @@
  *   import 'table-kit/styles.css'
  *   import './index.css'
  *
- * Nothing in here contains a colour, a size or a case decision of its own.
+ * Nothing in here contains a color, a size or a case decision of its own.
  * Every value comes from a `--tk-*` token the app sets, which is what lets one
  * rule produce Beat the Heat's chunky pressed caps and Flip 7's flat sentence
  * case without either app owning a copy of the rule.
@@ -54,7 +54,7 @@
   /* How far a pressed key travels. 0 for an app whose keys don't move. */
   --tk-edge: 0px;
 
-  /* Chrome is furniture you recognise by shape — buttons, banners. Content is
+  /* Chrome is furniture you recognize by shape — buttons, banners. Content is
      anything a person wrote. Only chrome is affected by these. */
   --tk-chrome-case: none;
   --tk-chrome-weight: 700;
@@ -142,12 +142,12 @@
 
 /* ── the screen ──────────────────────────────────────────────────────────
  *
- * One column, safe on a phone, centred on anything wider.
+ * One column, safe on a phone, centered on anything wider.
  *
  * `svh`, NEVER `vh` — and never `dvh` either. Both apps had already worked out
  * that `vh` lies on iOS, where Safari's toolbar overlays the viewport it
  * reports; they landed on different fixes. `dvh` tracks the toolbar as it comes
- * and goes, which means the screen resizes mid-scroll and a centred one drifts
+ * and goes, which means the screen resizes mid-scroll and a centered one drifts
  * while you are reading it. `svh` is the viewport with the toolbar OUT — the
  * smallest it ever gets — so a bottom button is never underneath the chrome
  * exactly when a thumb reaches for it. That is what both comments were asking
@@ -178,7 +178,7 @@
  * Icon, wordmark, tagline. The header a game gets to introduce itself with.
  *
  * On a phone this is the ONLY place the app has a face, and the thing that
- * makes someone recognise what they installed is the mark being the same shape
+ * makes someone recognize what they installed is the mark being the same shape
  * as the tile on their home screen. So the mark is the game's own SVG — art
  * stays in the game, always — and the arrangement of it is here.
  *
@@ -228,8 +228,8 @@
   margin: 0;
   color: var(--tk-muted);
   font-size: 0.95rem;
-  /* Centred here whatever `--tk-muted-align` says: it sits under a centred
-     lockup, and a left-aligned line under a centred one reads as a mistake. */
+  /* Centered here whatever `--tk-muted-align` says: it sits under a centered
+     lockup, and a left-aligned line under a centered one reads as a mistake. */
   text-align: center;
 }
 
@@ -324,7 +324,7 @@
  * This was the one real disagreement between the two apps, and it is settled
  * here: margins collapse, double against each other, and depend on the order
  * children happen to sit in, so adding a paragraph to a card meant discovering
- * which of its neighbours already carried a margin. A gap cannot be got wrong
+ * which of its neighbors already carried a margin. A gap cannot be got wrong
  * by adding a child.
  *
  * A card's children therefore carry NO vertical margin of their own. Where one
@@ -415,7 +415,7 @@
  *
  * `color-mix` against the row's own ground rather than a token of its own: the
  * selection has to work over whatever a game sets its rows to, and asking every
- * app to hand-pick a fifth surface colour is how two apps drift apart.
+ * app to hand-pick a fifth surface color is how two apps drift apart.
  */
 .row.chosen {
   border-color: var(--tk-primary);

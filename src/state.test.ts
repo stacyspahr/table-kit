@@ -8,7 +8,7 @@
  * a game can SUPPLY it. If these pass, the seam is wide enough for Flip 7 to
  * migrate onto without the kit knowing anything about Flip 7.
  *
- * The rest covers what the kit does own, including the two behaviours Beat the
+ * The rest covers what the kit does own, including the two behaviors Beat the
  * Heat needs that Flip 7 never exercised: lowest-wins, and a goal check that is
  * independent of who wins.
  */
@@ -157,7 +157,7 @@ describe('a game-supplied tally', () => {
     expect(t.get('cy')).toBe(0)
   })
 
-  it('is honoured by committedTotals too, so the penalty reveals with the round', () => {
+  it('is honored by committedTotals too, so the penalty reveals with the round', () => {
     const s = state(
       [round('r1', 1, 'closed'), round('r2', 2, 'open')],
       [

@@ -24,7 +24,7 @@
  * is called from the tap handler with a `File` already in hand.
  */
 
-/** Colours and type. Everything here is the game's, never the kit's. */
+/** Colors and type. Everything here is the game's, never the kit's. */
 export interface CardTheme {
   bg: string
   ink: string
@@ -334,7 +334,7 @@ export type ShareOutcome = 'shared' | 'downloaded' | 'unavailable'
  *
  * The fallback is a download rather than an error: a phone that cannot share a
  * file can still save a picture, and the person then sends it themselves.
- * A cancelled share is not a failure — it reports `shared`, because the user
+ * A canceled share is not a failure — it reports `shared`, because the user
  * did exactly what they meant to.
  */
 export async function shareCard(file: File, title: string): Promise<ShareOutcome> {

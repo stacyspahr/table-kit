@@ -128,7 +128,7 @@ describe('groupByNight', () => {
 describe('parsing', () => {
   it("reads PocketBase's space-separated stamp rather than choking on it", () => {
     // The T-less form is what the API actually returns; Safari may refuse it
-    // unless it is normalised first.
+    // unless it is normalized first.
     const noon = timeOfDay(stamp(at(2026, 7, 31, 12, 0)))
     expect(noon).not.toBe('Invalid Date')
     expect(noon).toMatch(/12/)

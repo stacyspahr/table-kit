@@ -2,7 +2,7 @@
  * The share card, tested where it can actually go wrong.
  *
  * Not "does it look right" — a canvas test cannot answer that, and a mockup
- * already did. What IS testable is the behaviour a full table triggers: an
+ * already did. What IS testable is the behavior a full table triggers: an
  * eight-seat game with five awards has to fit on a fixed 1080×1350 card, and
  * the rules about what gives are editorial decisions, not accidents.
  *
@@ -194,7 +194,7 @@ describe('shareCard', () => {
     expect(share).toHaveBeenCalledOnce()
   })
 
-  it('treats a cancelled sheet as done, not as a failure to fall back from', async () => {
+  it('treats a canceled sheet as done, not as a failure to fall back from', async () => {
     // Closing the sheet is the user doing exactly what they meant to. Silently
     // downloading the card instead would be the app arguing with them.
     const err = Object.assign(new Error('cancelled'), { name: 'AbortError' })

@@ -25,8 +25,8 @@ time a screen is added.
 
 | Layer | Lives | Holds |
 | --- | --- | --- |
-| Tokens | per app | Colour, ink, lines, radius, gap, edge depth, chrome case. Same variable *names* everywhere, each game's own values. |
-| Bones | table-kit | `.screen` `.card` `.row` `.btn` `.pill` `.linklike` `.tick`, tap sizes, safe areas, `dvh`. Written against tokens only — never a literal colour. |
+| Tokens | per app | Color, ink, lines, radius, gap, edge depth, chrome case. Same variable *names* everywhere, each game's own values. |
+| Bones | table-kit | `.screen` `.card` `.row` `.btn` `.pill` `.linklike` `.tick`, tap sizes, safe areas, `dvh`. Written against tokens only — never a literal color. |
 | Skin | per app | Anything one game alone has: pips and tallies, card chips and the modifier pad, the icon, the reveal's character. |
 
 ## Decision A — what a control's shape means
@@ -110,7 +110,7 @@ principle: **the container owns the space, and a name is never squeezed.**
 - **The card** carries one gap for every child; no child of a card carries a
   vertical margin. Margins collapse, double, and depend on the order children
   happen to sit in — adding a paragraph meant discovering which of its
-  neighbours already had one. Flip 7 lost a dozen child margins in the
+  neighbors already had one. Flip 7 lost a dozen child margins in the
   conversion, including the `.card > .btn:not(.big)` rule that existed purely
   because no container had a gap. Where something genuinely needs more air than
   the rest (a modal's question above its answer) it now adds the difference,
@@ -134,7 +134,7 @@ becoming tokens. Two things did change:
   on iOS, where Safari's toolbar overlays the viewport it reports, and each
   landed on a different fix — Beat the Heat on `dvh`, Flip 7 on `svh`. `dvh`
   tracks the toolbar as it comes and goes, so the screen resizes mid-scroll and
-  a centred one drifts while you are reading it. `svh` is the viewport with the
+  a centered one drifts while you are reading it. `svh` is the viewport with the
   toolbar *out*, the smallest it ever gets, so a bottom button is never
   underneath the chrome exactly when a thumb reaches for it. Beat the Heat's
   `.qr-screen` moved with it: a QR must not resize while somebody across the
@@ -206,7 +206,7 @@ in a diff instead of buried in a second copy of the whole system.
 Not before a game night. Each step ships separately; the first two are
 invisible to players.
 
-1. Agree token names, map each app's existing colours onto them. Nothing moves.
+1. Agree token names, map each app's existing colors onto them. Nothing moves.
 2. Move the 61 shared rules into `table-kit/styles.css`. Both apps import and
    delete their copies. Should be pixel-identical — anything that shifts means
    a token is wrong.

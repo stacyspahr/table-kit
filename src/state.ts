@@ -38,7 +38,7 @@ export interface PlayerRec {
    * The throwaway guest credential holding this seat, when one does.
    *
    * Both games have had this column since their players collection was
-   * created; the kit simply never modelled it, because Beat the Heat's client
+   * created; the kit simply never modeled it, because Beat the Heat's client
    * never reads it. Flip 7's does — it is how a returning phone finds which
    * seat is already its own, alongside `device_id`.
    */
@@ -313,7 +313,7 @@ export function endReached<G extends GameRec, S extends SubmissionRec>(
 /**
  * @deprecated Prefer {@link endReached}, which says what it means for a game
  * that ends on a round count rather than a score. Kept because both live apps
- * call it; identical behaviour.
+ * call it; identical behavior.
  */
 export const goalReached = endReached
 

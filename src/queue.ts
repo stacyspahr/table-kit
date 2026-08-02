@@ -46,7 +46,7 @@
  *   • Forty autosaves are ONE queued write, because each replaces the last.
  *   • If somebody proxies your seat while you are offline, your write lands on
  *     top of theirs when you reconnect rather than dying as a conflict. That is
- *     the specified behaviour — last write wins, and `submitted_by` records who.
+ *     the specified behavior — last write wins, and `submitted_by` records who.
  *
  * ── What is deliberately NOT queued ───────────────────────────────────────
  * Closing a round, opening the next one, and ending a game are server-side

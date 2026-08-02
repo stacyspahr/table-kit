@@ -298,7 +298,7 @@ it needs `if (game === 'heat')` anywhere, it is not kit code.
 Every row is a scenario that *will* happen at a card table, handled identically
 for every game in the suite.
 
-| Scenario | Behaviour |
+| Scenario | Behavior |
 |---|---|
 | Wifi drops mid-entry | Taps are local. Queue flushes on reconnect; `client_uuid` dedupes replays |
 | Phone dies mid-entry | Autosaves as a draft. Any device resumes the seat |

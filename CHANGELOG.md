@@ -149,7 +149,7 @@ The card measures itself before it draws. Both bugs this fixes were only
 visible once a real one was rendered.
 
 - Fixed: a four-seat game with two awards left the bottom third of the card
-  empty. Everything below the lockup is now centred in the space it has, so a
+  empty. Everything below the lockup is now centered in the space it has, so a
   short card reads as composed rather than as a long one that ran out of things
   to say.
 - Fixed: an eight-seat game with five awards ran off the bottom. The trim was
@@ -174,7 +174,7 @@ sheet.
   board rows lose their air first, then awards are trimmed **from the top** —
   the list is editorially ordered with the funny one last, so cutting from the
   end takes the punchline.
-- `shareCard` treats a cancelled sheet as done rather than falling back to a
+- `shareCard` treats a canceled sheet as done rather than falling back to a
   download. Closing the sheet is the user doing what they meant to.
 - ⚠️ Call `renderCard` on mount, never in a tap handler. iOS ends the gesture at
   the first `await` and then silently refuses to open the sheet — the same trap
@@ -192,7 +192,7 @@ Two classes both games needed the moment their home screens were rebuilt.
   the wordmark, deliberately; a sub-screen should say what it is rather than
   repeat the app's name to someone already holding the phone.
 - `color-mix` does the tint against `--tk-row-bg`, so the selection works over
-  whatever ground a game sets without either app hand-picking a fifth colour.
+  whatever ground a game sets without either app hand-picking a fifth color.
 
 ## v0.7.0
 
@@ -251,7 +251,7 @@ Nothing an app can call changed — this is a housekeeping release, tagged so
 ## v0.5.1
 
 - Added: `guest` on `PlayerRec`. Both games' players collections have carried
-  the column since the day they were created; the kit simply never modelled it,
+  the column since the day they were created; the kit simply never modeled it,
   because Beat the Heat's client never reads it. Flip 7's does — it is how a
   returning phone works out which seat is already its own, alongside
   `device_id`. Nothing changed in the database. Only the type was missing.
