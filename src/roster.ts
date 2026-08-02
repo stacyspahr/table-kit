@@ -50,11 +50,30 @@ export interface RecalledSeat {
 }
 
 /**
- * How many names this phone keeps. Three covers the household phone that gets
- * handed round — beyond that it stops being a shortcut and becomes another
- * list to read.
+ * How many names this phone keeps. One: the last person who sat down on it.
+ *
+ * ── Why not three ────────────────────────────────────────────────────────
+ * It used to keep three, for the household phone that gets handed round. That
+ * case is real but rare, and it was paying for itself with the common one:
+ * a phone belongs to a person, and the shortcut is supposed to say "you". Two
+ * names is a question, and a question is exactly what a one-tap shortcut is
+ * there to avoid.
+ *
+ * The failure mode that decided it: one mis-tap on somebody else's name and the
+ * phone offered two people from then on, with no way back except the "not me"
+ * hatch. At one, a mis-tap REPLACES the memory instead of adding to it, so the
+ * next correct pick puts it right on its own — the shortcut is self-healing
+ * rather than something that accumulates other people's mistakes.
+ *
+ * Nothing is lost when the phone guesses wrong: the whole roster is still on
+ * the screen underneath, which is where a handed-round phone was always going
+ * to end up anyway.
+ *
+ * Kept as a constant over an array in storage, so a phone that already holds
+ * three simply shows the newest — `recalledSeats` sorts by recency before it
+ * slices. No migration, and it corrects itself the first time anyone sits down.
  */
-const MAX_RECALLED = 3
+const MAX_RECALLED = 1
 
 function storageKey(appKey: string): string {
   return `${appKey}_recent_seats`

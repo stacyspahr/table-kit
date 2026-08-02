@@ -7,6 +7,25 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.10.0
+
+A phone remembers **one** name — the last person who sat down on it. It used to
+keep three.
+
+- Changed: `recalledSeats` returns at most one seat, so the seat-claim screen
+  offers a single "I'm …" button instead of a short list. Nothing about the API
+  moved; only how many rows come back.
+- Why: three was for the household phone that gets handed round, which is real
+  but rare, and it was charging the common case for it. A phone belongs to a
+  person and the shortcut is meant to say "you" — two names is a question, and a
+  question is what a one-tap shortcut exists to avoid.
+- The failure that decided it: one mis-tap on somebody else's name and the phone
+  offered two people from then on, with no way back short of "not me". At one, a
+  mis-tap **replaces** the memory rather than adding to it, so the next correct
+  pick fixes it.
+- No migration. A phone already holding three sorts by recency and shows the
+  newest, then shrinks to one the next time anyone sits down.
+
 ## v0.9.1
 
 The card measures itself before it draws. Both bugs this fixes were only

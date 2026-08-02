@@ -26,22 +26,42 @@ describe('this phone remembers', () => {
     expect(recalledSeats(APP)).toEqual([])
   })
 
-  it('gives back what it was told, most recent first', () => {
+  it('remembers the last person to sit down, and only them', () => {
     rememberSeat(APP, { id: 'r1', display_name: 'Zak' })
     rememberSeat(APP, { id: 'r0', display_name: 'Michelle' })
-    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['Michelle', 'Zak'])
+    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['Michelle'])
   })
 
-  it('keeps one row per person, moved to the front', () => {
+  it('lets a mis-tap correct itself instead of accumulating', () => {
+    // The whole reason this is one and not three. Tapping the wrong name used
+    // to mean the phone offered two people from then on, with no way back
+    // short of the "not me" hatch. Picking your own name once puts it right.
     rememberSeat(APP, { id: 'r0', display_name: 'Michelle' })
     rememberSeat(APP, { id: 'r1', display_name: 'Zak' })
+    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['Zak'])
+    rememberSeat(APP, { id: 'r0', display_name: 'Michelle' })
+    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['Michelle'])
+  })
+
+  it('treats a re-spelling as the same person, not a second one', () => {
+    rememberSeat(APP, { id: 'r0', display_name: 'Michelle' })
     rememberSeat(APP, { id: 'r0', display_name: 'michelle' })
-    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['michelle', 'Zak'])
+    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['michelle'])
   })
 
-  it('keeps three and no more — past that it is another list to read', () => {
-    for (const n of ['A', 'B', 'C', 'D']) rememberSeat(APP, { display_name: n })
-    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['D', 'C', 'B'])
+  it('shows the newest to a phone that still holds several from before', () => {
+    // No migration: a phone that stored three under the old cap sorts by
+    // recency and takes the top one, then shrinks to one the next time anybody
+    // sits down on it.
+    localStorage.setItem(
+      `${APP}_recent_seats`,
+      JSON.stringify([
+        { id: 'r0', display_name: 'Michelle', at: 100 },
+        { id: 'r1', display_name: 'Zak', at: 300 },
+        { id: 'r2', display_name: 'Nana', at: 200 },
+      ]),
+    )
+    expect(recalledSeats(APP).map((s) => s.display_name)).toEqual(['Zak'])
   })
 
   it('ignores a blank name rather than storing an unusable row', () => {
