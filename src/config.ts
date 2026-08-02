@@ -14,6 +14,17 @@ export interface Collections {
   players: string
   rounds: string
   submissions: string
+  /**
+   * Durable identity across nights. Optional only because it was added after
+   * two apps already existed; it defaults to `<appKey>_roster`, which is right
+   * for every app except Flip 7, whose collection predates the convention and
+   * is called `f7_roster`.
+   *
+   * Naming it here rather than deriving it is what keeps the join flow free of
+   * a per-app special case — and a per-app special case in kit code is the one
+   * thing the seam rule forbids outright.
+   */
+  roster?: string
 }
 
 export interface TableKitConfig {

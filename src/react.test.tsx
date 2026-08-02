@@ -287,3 +287,116 @@ describe('inviting a host', () => {
     await waitFor(() => expect(calls.some((c) => c.method === 'delete')).toBe(true))
   })
 })
+
+// ── the seat claim ────────────────────────────────────────────────────────
+
+import { SeatClaim } from './react.js'
+import { recalledSeats } from './roster.js'
+import type { PlayerRec } from './state.js'
+
+function seat(id: string, over: Partial<PlayerRec> = {}): PlayerRec {
+  return {
+    id,
+    game: 'g1',
+    display_name: id,
+    seat_order: 0,
+    device_id: '',
+    guest: '',
+    roster_entry: '',
+    joined_round: 1,
+    ...over,
+  }
+}
+
+describe('taking a seat', () => {
+  const base = {
+    appKey: 'ninetest',
+    players: [] as PlayerRec[],
+    roster: [] as { id: string; display_name: string }[],
+    onClaim: async () => {},
+    onReclaim: async () => {},
+  }
+
+  afterEach(() => localStorage.clear())
+
+  it('offers typing a name when there is nothing else to pick', () => {
+    render(<SeatClaim {...base} />)
+    expect(screen.getByText('Type your name')).toBeTruthy()
+  })
+
+  it('takes a phoneless seat straight away, with no are-you-sure', async () => {
+    // That seat was added FOR someone; taking it is the expected move, not an
+    // unusual one.
+    const onReclaim = vi.fn().mockResolvedValue(undefined)
+    render(<SeatClaim {...base} players={[seat('p1', { display_name: 'Zak' })]} onReclaim={onReclaim} />)
+    fireEvent.click(screen.getByText('Zak'))
+    fireEvent.click(screen.getByText("Yes, that's me"))
+    await waitFor(() => expect(onReclaim).toHaveBeenCalled())
+  })
+
+  it("asks before taking a seat that is on somebody else's phone", () => {
+    render(<SeatClaim {...base} players={[seat('p1', { display_name: 'Zak', device_id: 'other' })]} />)
+    fireEvent.click(screen.getByText('Zak'))
+    expect(screen.getByText(/already on someone's phone/)).toBeTruthy()
+  })
+
+  it('marks which seats have nobody holding them', () => {
+    render(
+      <SeatClaim
+        {...base}
+        players={[seat('p1', { display_name: 'Zak' }), seat('p2', { display_name: 'Ann', device_id: 'd' })]}
+      />,
+    )
+    expect(screen.getAllByText('no phone')).toHaveLength(1)
+  })
+
+  it('claims a roster name and remembers it for next time', async () => {
+    const onClaim = vi.fn().mockResolvedValue(undefined)
+    render(<SeatClaim {...base} roster={[{ id: 'r1', display_name: 'Ann' }]} onClaim={onClaim} />)
+    fireEvent.click(screen.getByText('Ann'))
+    await waitFor(() => expect(onClaim).toHaveBeenCalledWith('Ann', 'r1'))
+    // Next join on this phone offers her straight away.
+    expect(recalledSeats('ninetest').map((r) => r.display_name)).toEqual(['Ann'])
+  })
+
+  it('remembers a typed name even though it has no roster entry yet', async () => {
+    // The server hook creates the entry after the write, so the name has to
+    // carry the match on its own.
+    const onClaim = vi.fn().mockResolvedValue(undefined)
+    render(<SeatClaim {...base} onClaim={onClaim} />)
+    fireEvent.click(screen.getByText('Type your name'))
+    fireEvent.change(screen.getByPlaceholderText('e.g. Michelle'), {
+      target: { value: ' Michelle ' },
+    })
+    fireEvent.click(screen.getByText("That's me"))
+    await waitFor(() => expect(onClaim).toHaveBeenCalledWith(' Michelle '))
+    expect(recalledSeats('ninetest').map((r) => r.display_name)).toEqual(['Michelle'])
+  })
+
+  it('says so when a claim fails rather than looking merely inert', async () => {
+    const onClaim = vi.fn().mockRejectedValue(new Error('seat taken'))
+    render(<SeatClaim {...base} onClaim={onClaim} />)
+    fireEvent.click(screen.getByText('Type your name'))
+    fireEvent.change(screen.getByPlaceholderText('e.g. Michelle'), { target: { value: 'Zak' } })
+    fireEvent.click(screen.getByText("That's me"))
+    await waitFor(() => expect(screen.getByText('seat taken')).toBeTruthy())
+    // And it did NOT record a seat that was never taken.
+    expect(recalledSeats('ninetest')).toEqual([])
+  })
+
+  it('renders the app brand it is given and none of its own', () => {
+    render(<SeatClaim {...base} brand={<h1>Who are you?</h1>} />)
+    expect(screen.getByText('Who are you?')).toBeTruthy()
+  })
+
+  it('only offers a search box once the roster is worth typing over', () => {
+    const short = [1, 2, 3].map((n) => ({ id: `r${n}`, display_name: `Name${n}` }))
+    const { unmount } = render(<SeatClaim {...base} roster={short} />)
+    expect(screen.queryByPlaceholderText('Type a letter or two')).toBeNull()
+    unmount()
+
+    const long = Array.from({ length: 12 }, (_, n) => ({ id: `r${n}`, display_name: `Name${n}` }))
+    render(<SeatClaim {...base} roster={long} />)
+    expect(screen.getByPlaceholderText('Type a letter or two')).toBeTruthy()
+  })
+})

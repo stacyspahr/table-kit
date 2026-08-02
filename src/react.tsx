@@ -15,6 +15,9 @@ import { useEffect, useState, type ReactNode } from 'react'
 import QRCode from 'qrcode'
 import { joinUrl, keepAwake } from './session.js'
 import { watchForUpdates } from './version.js'
+import { recalledSeats, rememberSeat, seatChoices } from './roster.js'
+import type { RosterLike } from './join.js'
+import type { PlayerRec } from './state.js'
 
 /**
  * The full-screen join QR.
@@ -517,5 +520,255 @@ export function InviteHost({
         Done
       </button>
     </section>
+  )
+}
+
+/**
+ * "Who are you?" — the screen a guest sees after scanning, and very often the
+ * only one that ever introduces the app to them.
+ *
+ * Every decision about WHAT to offer lives in `seatChoices`; this renders it.
+ * Four ways to a seat, in the order a person would try them:
+ *
+ *   1. A name this phone has sat down as before — one tap.
+ *   2. A seat already at THIS table matching a name the phone knows, usually
+ *      the phoneless one the host added ahead of time. Offered above the roster
+ *      because taking it beats claiming a second seat, which would split the
+ *      player's score across two rows.
+ *   3. The roster, searchable once it is long enough to be worth typing over.
+ *   4. Typing a name, for someone new.
+ *
+ * Nothing here knows what game it is in, which is why it can live in the kit —
+ * the only game-shaped thing on screen is `brand`, and that is a slot.
+ */
+export function SeatClaim({
+  appKey,
+  players,
+  roster,
+  onClaim,
+  onReclaim,
+  brand,
+}: {
+  appKey: string
+  players: PlayerRec[]
+  roster: RosterLike[]
+  onClaim: (name: string, rosterEntry?: string) => Promise<void>
+  onReclaim: (seat: PlayerRec) => Promise<void>
+  brand?: ReactNode
+}) {
+  const [typing, setTyping] = useState(false)
+  const [name, setName] = useState('')
+  const [query, setQuery] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState('')
+  const [confirm, setConfirm] = useState<PlayerRec | null>(null)
+
+  // What this phone knew when the screen opened. Read ONCE: nothing writes to
+  // it while the screen is up, and re-reading every render would churn the
+  // suggestions under whoever is in the middle of reading them.
+  const [recalled] = useState(() => recalledSeats(appKey))
+
+  const { suggested, reclaimable, list, hiddenCount, searchable } = seatChoices({
+    roster,
+    seated: players,
+    recalled,
+    query,
+  })
+  const anyToPick = suggested.length + reclaimable.length + list.length > 0
+
+  // Always surface a failure. A rejected write must never leave the button
+  // looking merely inert — the player taps, nothing happens, and there is
+  // nothing on screen to tell them why.
+  async function run(fn: () => Promise<void>, remember: { id?: string; display_name: string }) {
+    setBusy(true)
+    setFailed('')
+    try {
+      await fn()
+      // Next time this phone opens a join link it can offer the name straight
+      // away. A typed-in name has no roster entry yet — the server hook makes
+      // one after the write — so the name carries the match on its own.
+      rememberSeat(appKey, remember)
+    } catch (e: any) {
+      setFailed(e?.response?.message || e?.message || "That didn't save. Tap to try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (confirm) {
+    return (
+      <div className="screen center">
+        <div className="card">
+          <h2>Play as {confirm.display_name}?</h2>
+          <p className="fine">
+            {confirm.device_id
+              ? "That seat is already on someone's phone. If it's yours, take it back — your score comes with you."
+              : 'That seat was added for someone without a phone. Take it and it becomes yours.'}
+          </p>
+          {failed && <p className="error">{failed}</p>}
+          <button
+            className="btn big"
+            disabled={busy}
+            onClick={() =>
+              run(() => onReclaim(confirm), {
+                id: confirm.roster_entry,
+                display_name: confirm.display_name,
+              })
+            }
+          >
+            {busy ? 'Taking the seat…' : "Yes, that's me"}
+          </button>
+          <button className="btn ghost" onClick={() => setConfirm(null)}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="screen">
+      {brand}
+
+      {!typing && (suggested.length > 0 || reclaimable.length > 0) && (
+        <section className="card">
+          {failed && <p className="error">{failed}</p>}
+          {reclaimable.map((p) => (
+            <button
+              key={p.id}
+              className="btn big"
+              disabled={busy}
+              onClick={() =>
+                p.device_id
+                  ? setConfirm(p)
+                  : run(() => onReclaim(p), {
+                      id: p.roster_entry,
+                      display_name: p.display_name,
+                    })
+              }
+            >
+              I'm {p.display_name}
+            </button>
+          ))}
+          {suggested.map((r) => (
+            <button
+              key={r.id}
+              className="btn big"
+              disabled={busy}
+              onClick={() =>
+                run(() => onClaim(r.display_name, r.id), {
+                  id: r.id,
+                  display_name: r.display_name,
+                })
+              }
+            >
+              I'm {r.display_name}
+            </button>
+          ))}
+          <p className="fine">Last played on this phone.</p>
+        </section>
+      )}
+
+      {!typing && (list.length > 0 || searchable) && (
+        <section className="card">
+          {(suggested.length > 0 || reclaimable.length > 0) && <h2>Or someone else</h2>}
+          {failed && suggested.length === 0 && reclaimable.length === 0 && (
+            <p className="error">{failed}</p>
+          )}
+          {/* Only once the list is long enough to be worth typing over. Never
+              autofocused — a keyboard that throws itself up is exactly the
+              fussing this screen exists to remove. */}
+          {searchable && (
+            <label>
+              Find your name
+              <input
+                value={query}
+                maxLength={40}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Type a letter or two"
+              />
+            </label>
+          )}
+          <ul className="list big-list">
+            {list.map((r) => (
+              <li key={r.id}>
+                <button
+                  className="row"
+                  disabled={busy}
+                  onClick={() =>
+                    run(() => onClaim(r.display_name, r.id), {
+                      id: r.id,
+                      display_name: r.display_name,
+                    })
+                  }
+                >
+                  {r.display_name}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {query.trim() && list.length === 0 && <p className="fine">No one by that name.</p>}
+          {hiddenCount > 0 && (
+            <p className="fine">
+              {hiddenCount} more {hiddenCount === 1 ? 'name' : 'names'} — type a letter to find
+              them.
+            </p>
+          )}
+        </section>
+      )}
+
+      {typing ? (
+        <section className="card">
+          <label>
+            Your name
+            <input
+              autoFocus
+              value={name}
+              maxLength={40}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Michelle"
+            />
+          </label>
+          {failed && <p className="error">{failed}</p>}
+          <button
+            className="btn big"
+            disabled={busy || !name.trim()}
+            onClick={() => run(() => onClaim(name), { display_name: name.trim() })}
+          >
+            {busy ? 'Taking a seat…' : "That's me"}
+          </button>
+          {anyToPick && (
+            <button className="btn ghost" onClick={() => setTyping(false)}>
+              Back to the list
+            </button>
+          )}
+        </section>
+      ) : (
+        <button className="btn big" onClick={() => setTyping(true)}>
+          {anyToPick ? "My name isn't here" : 'Type your name'}
+        </button>
+      )}
+
+      {players.length > 0 && (
+        <section className="card">
+          <h2>Already sitting</h2>
+          {/* The instruction belongs here once, not repeated onto every row — a
+              per-row "tap to take" pill is wide enough to squeeze a name down
+              to an ellipsis on a 375px phone, and the name is the whole point
+              of the row. */}
+          <p className="fine">Tap your name to take that seat.</p>
+          <ul className="list">
+            {players.map((p) => (
+              <li key={p.id}>
+                <button className="row" onClick={() => setConfirm(p)}>
+                  <span className="row-main">{p.display_name}</span>
+                  {!p.device_id && <span className="pill">no phone</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   )
 }

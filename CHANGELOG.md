@@ -7,6 +7,29 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.13.0
+
+Joining a game night is the kit's, all the way to the seat.
+
+- Added: `bootstrapJoin`, `claimSeat`, `reclaimSeat` — the token exchange, the
+  already-seated reload check, seat allocation past a collision, and taking
+  back an existing seat.
+- Added to `table-kit/react`: `SeatClaim` — the "who are you?" screen. Takes
+  the app's lockup as `brand` and nothing else game-shaped.
+- Added: `Collections.roster`, optional, defaulting to `<appKey>_roster`. Flip
+  7's collection is `f7_roster`, which predates the convention — naming it in
+  config is what keeps a per-app special case out of kit code, which the seam
+  rule forbids outright.
+- NOT included, deliberately: the lobby copy, what a game calls its goal, and
+  the play screen. Those differ per game for real reasons, and swallowing them
+  would need a prop per sentence. An app's join screen is now: call
+  `bootstrapJoin`, render `SeatClaim` while claiming, render its own screens
+  once seated.
+- `claimSeat` walks the seat number up past a unique-index collision rather
+  than failing. Everyone scans the QR at the same moment, so the player list a
+  screen loaded with is stale immediately — this is the normal case, not an
+  edge one.
+
 ## v0.12.0
 
 The screens with no game in them move into the kit, so a third app stops being
