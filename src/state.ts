@@ -231,19 +231,91 @@ export function standings<G extends GameRec, S extends SubmissionRec>(
 }
 
 /**
- * Has anyone crossed the finish line?
+ * How a game knows it is over.
  *
- * Scores climb in every game in the suite, so the trigger is always "someone
- * reached the goal" regardless of who ends up winning.
+ * Two shapes, and they answer different questions. `points` asks "has anyone
+ * got there yet" — the answer depends on how people are playing. `rounds` asks
+ * "have we played them all" — the answer depends only on the calendar, and is
+ * knowable in advance. That second property is the whole reason this type
+ * exists: a fixed-length game can say "this is the last one" before it is
+ * played, and a points game never can.
  */
-export function goalReached<G extends GameRec, S extends SubmissionRec>(
+export type EndCondition =
+  | { type: 'points'; value: number }
+  | { type: 'rounds'; value: number }
+
+/**
+ * A bare number reads as points.
+ *
+ * Every call site written before rounds existed passes one, so widening rather
+ * than replacing keeps this a minor bump — no app has to change to take it.
+ */
+export type EndSpec = number | EndCondition
+
+export const asEndCondition = (end: EndSpec): EndCondition =>
+  typeof end === 'number' ? { type: 'points', value: end } : end
+
+/** Rounds the table has banked. A round still open is not played yet. */
+export function roundsPlayed<G extends GameRec, S extends SubmissionRec>(
   state: GameState<G, S>,
-  goal: number,
+): number {
+  return state.rounds.filter((r) => r.status === 'closed').length
+}
+
+/**
+ * Rounds still to play, counting one in progress. Null when there is no
+ * fixed number — a points game has no answer to give, and zero would be a lie.
+ */
+export function roundsLeft<G extends GameRec, S extends SubmissionRec>(
+  state: GameState<G, S>,
+  end: EndSpec,
+): number | null {
+  const cond = asEndCondition(end)
+  if (cond.type !== 'rounds') return null
+  return Math.max(0, cond.value - roundsPlayed(state))
+}
+
+/**
+ * Is the round now open the last one?
+ *
+ * False for a points game, always — not because it might not be, but because
+ * nobody can know. This is what lets a fixed-length game rename its commit
+ * button for the final round ("sign your card") while a points game leaves it
+ * alone.
+ */
+export function isFinalRound<G extends GameRec, S extends SubmissionRec>(
+  state: GameState<G, S>,
+  end: EndSpec,
+): boolean {
+  const cond = asEndCondition(end)
+  if (cond.type !== 'rounds' || !state.current) return false
+  return state.current.round_number >= cond.value
+}
+
+/**
+ * Has the game reached its end?
+ *
+ * For points: scores climb in every game in the suite, so the trigger is
+ * always "someone reached the goal" regardless of who ends up winning.
+ * For rounds: every round has been banked.
+ */
+export function endReached<G extends GameRec, S extends SubmissionRec>(
+  state: GameState<G, S>,
+  end: EndSpec,
   tally: Tally<S> = sumScores,
 ): boolean {
+  const cond = asEndCondition(end)
+  if (cond.type === 'rounds') return roundsPlayed(state) >= cond.value
   const table = totals(state, tally)
-  return [...table.values()].some((v) => v >= goal)
+  return [...table.values()].some((v) => v >= cond.value)
 }
+
+/**
+ * @deprecated Prefer {@link endReached}, which says what it means for a game
+ * that ends on a round count rather than a score. Kept because both live apps
+ * call it; identical behaviour.
+ */
+export const goalReached = endReached
 
 /**
  * Who is level at the front, with the game still running.
@@ -254,11 +326,11 @@ export function goalReached<G extends GameRec, S extends SubmissionRec>(
 export function tieAtFront<G extends GameRec, S extends SubmissionRec>(
   state: GameState<G, S>,
   winner: Winner,
-  goal: number,
+  end: EndSpec,
   tally: Tally<S> = sumScores,
 ): PlayerRec[] {
   if (state.game.status !== 'active' || state.players.length < 2) return []
-  if (!goalReached(state, goal, tally)) return []
+  if (!endReached(state, end, tally)) return []
 
   const table = totals(state, tally)
   const scores = state.players.map((p) => table.get(p.id) ?? 0)

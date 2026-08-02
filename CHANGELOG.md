@@ -7,6 +7,33 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.11.0
+
+A game can end after a fixed number of rounds — and can tell it is on the last
+one *before* that round is played.
+
+- Added: `EndCondition`, either `{ type: 'points', value }` or
+  `{ type: 'rounds', value }`, accepted anywhere a bare goal number was. A bare
+  number still reads as points, so nothing has to change to take this.
+- Added: `endReached`, `roundsPlayed`, `roundsLeft`, `isFinalRound`.
+  `goalReached` is now an alias of `endReached` and behaves exactly as before.
+- Added: `roundScope(state, round)` and `gameScope(state)` — the two contexts
+  the awards engine was already written to accept.
+- Why the type rather than a second function: the two shapes answer different
+  questions. `points` asks "has anyone got there yet", which depends on how
+  people are playing. `rounds` asks "have we played them all", which depends
+  only on the calendar and is therefore knowable in advance. `isFinalRound`
+  exists to sell exactly that asymmetry, and returns false for a points game
+  always — not because it might not be the last round, but because nobody could
+  know.
+- Why the scopes: per-round callouts were bespoke code in each app, so a third
+  game meant a third copy. They are now the same machinery as end-of-game
+  awards pointed at different submissions. `roundScope` deliberately does NOT
+  require the round to be closed — the reveal plays while the round is still in
+  review, and waiting for closed would mean a callout never fires. It also drops
+  seats that joined later, so no game has to remember to return null for a
+  latecomer in every measure it writes.
+
 ## v0.10.0
 
 A phone remembers **one** name — the last person who sat down on it. It used to

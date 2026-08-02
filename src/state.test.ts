@@ -15,8 +15,13 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  asEndCondition,
   committedTotals,
+  endReached,
   goalReached,
+  isFinalRound,
+  roundsLeft,
+  roundsPlayed,
   standings,
   submissionFor,
   submittedThisRound,
@@ -337,5 +342,109 @@ describe('drafts are not answers', () => {
     }
     const board = standings(state, 'lowest')
     expect(board.map((r) => [r.player.id, r.score])).toEqual([['p1', 0], ['p2', 3]])
+  })
+})
+
+/**
+ * The end condition.
+ *
+ * Two shapes behind one check, and the reason for the type is the third
+ * function: a fixed-length game can say "this is the last one" BEFORE it is
+ * played, and a points game can never know. Everything Play Nine needs to
+ * rename its final button rests on that asymmetry.
+ */
+describe('end conditions', () => {
+  const nine = { type: 'rounds' as const, value: 3 }
+
+  it('reads a bare number as points, so nothing written before rounds breaks', () => {
+    expect(asEndCondition(66)).toEqual({ type: 'points', value: 66 })
+    expect(asEndCondition(nine)).toBe(nine)
+  })
+
+  it('counts only banked rounds as played', () => {
+    const s = state([round('r1', 1, 'closed'), round('r2', 2, 'open')], [])
+    expect(roundsPlayed(s)).toBe(1)
+  })
+
+  it('counts a round in progress as still to play', () => {
+    const s = state([round('r1', 1, 'closed'), round('r2', 2, 'open')], [])
+    expect(roundsLeft(s, nine)).toBe(2)
+  })
+
+  it('gives no answer for a points game rather than a misleading zero', () => {
+    const s = state([round('r1', 1, 'open')], [])
+    expect(roundsLeft(s, 66)).toBeNull()
+  })
+
+  it('never reports a negative number of rounds left', () => {
+    const s = state(
+      [round('r1', 1, 'closed'), round('r2', 2, 'closed'), round('r3', 3, 'closed'),
+       round('r4', 4, 'closed')],
+      [],
+    )
+    expect(roundsLeft(s, nine)).toBe(0)
+  })
+
+  it('knows the last round while it is still being played', () => {
+    const s = state(
+      [round('r1', 1, 'closed'), round('r2', 2, 'closed'), round('r3', 3, 'open')],
+      [],
+    )
+    expect(isFinalRound(s, nine)).toBe(true)
+    expect(endReached(s, nine)).toBe(false)
+  })
+
+  it('does not call an earlier round final', () => {
+    const s = state([round('r1', 1, 'closed'), round('r2', 2, 'open')], [])
+    expect(isFinalRound(s, nine)).toBe(false)
+  })
+
+  it('never calls a round final in a points game, because nobody could know', () => {
+    const s = state([round('r1', 1, 'open')], [sub('r1', 'ann', 90)])
+    expect(isFinalRound(s, 66)).toBe(false)
+  })
+
+  it('has no final round when nothing is open — there is nothing left to sign', () => {
+    const s = state(
+      [round('r1', 1, 'closed'), round('r2', 2, 'closed'), round('r3', 3, 'closed')],
+      [],
+    )
+    expect(isFinalRound(s, nine)).toBe(false)
+    expect(endReached(s, nine)).toBe(true)
+  })
+
+  it('ends a points game on the score, ignoring how many rounds it took', () => {
+    const s = state([round('r1', 1, 'closed')], [sub('r1', 'ann', 70)])
+    expect(endReached(s, { type: 'points', value: 66 })).toBe(true)
+    expect(endReached(s, { type: 'rounds', value: 9 })).toBe(false)
+  })
+
+  it('ends a rounds game on the count, however low the scores are', () => {
+    const s = state(
+      [round('r1', 1, 'closed'), round('r2', 2, 'closed'), round('r3', 3, 'closed')],
+      [sub('r1', 'ann', 1)],
+    )
+    expect(endReached(s, nine)).toBe(true)
+  })
+
+  it('still answers to the old name with a bare goal', () => {
+    const s = state([round('r1', 1, 'closed')], [sub('r1', 'ann', 70)])
+    expect(goalReached(s, 66)).toBe(true)
+  })
+
+  it('finds a tie at the front of a game that ran out of rounds', () => {
+    const s = state(
+      [round('r1', 1, 'closed'), round('r2', 2, 'closed'), round('r3', 3, 'closed')],
+      [sub('r1', 'ann', 30), sub('r2', 'bo', 30), sub('r3', 'cy', 44)],
+    )
+    expect(tieAtFront(s, 'lowest', nine).map((p) => p.id)).toEqual(['ann', 'bo'])
+  })
+
+  it('leaves a tie alone while rounds remain', () => {
+    const s = state(
+      [round('r1', 1, 'closed'), round('r2', 2, 'open')],
+      [sub('r1', 'ann', 30), sub('r1', 'bo', 30)],
+    )
+    expect(tieAtFront(s, 'lowest', nine)).toEqual([])
   })
 })

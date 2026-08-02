@@ -22,7 +22,7 @@
  * one can encode it in the measure.
  */
 
-import type { PlayerRec, RoundRec, SubmissionRec } from './state.js'
+import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './state.js'
 
 /**
  * What an award gets to look at.
@@ -148,4 +148,44 @@ export function closedSubmissions<S extends SubmissionRec>(
 ): S[] {
   const closed = new Set(rounds.filter((r) => r.status === 'closed').map((r) => r.id))
   return submissions.filter((s) => closed.has(s.round) && s.status !== 'draft')
+}
+
+/**
+ * The scope for ONE round — what a per-round callout reads.
+ *
+ * Deliberately does NOT require the round to be closed. A callout plays during
+ * the reveal, and the reveal runs while the round is still in review so it can
+ * be corrected; waiting for closed would mean the callout never fires.
+ *
+ * Seats that joined later are dropped. A latecomer owes nothing for a round
+ * that ran before they sat down, and leaving them in means every game has to
+ * remember to return null for them in every measure it writes.
+ */
+export function roundScope<G extends GameRec, S extends SubmissionRec>(
+  state: GameState<G, S>,
+  round: RoundRec,
+): AwardContext<S> {
+  return {
+    players: state.players.filter((p) => p.joined_round <= round.round_number),
+    rounds: [round],
+    submissions: state.submissions.filter(
+      (s) => s.round === round.id && s.status !== 'draft',
+    ),
+  }
+}
+
+/**
+ * The scope for the whole game — what end-of-game awards read.
+ *
+ * Banked rounds only, for the reason in {@link closedSubmissions}: an award
+ * that moves after it has been announced is worse than no award.
+ */
+export function gameScope<G extends GameRec, S extends SubmissionRec>(
+  state: GameState<G, S>,
+): AwardContext<S> {
+  return {
+    players: state.players,
+    rounds: state.rounds,
+    submissions: closedSubmissions(state.rounds, state.submissions),
+  }
 }

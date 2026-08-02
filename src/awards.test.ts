@@ -12,13 +12,21 @@
 import { describe, expect, it } from 'vitest'
 import {
   closedSubmissions,
+  gameScope,
+  roundScope,
   runAwards,
   submissionsByPlayer,
   type Award,
   type AwardContext,
   type AwardDef,
 } from './awards.js'
-import type { PlayerRec, RoundRec, SubmissionRec } from './state.js'
+import type {
+  GameRec,
+  GameState,
+  PlayerRec,
+  RoundRec,
+  SubmissionRec,
+} from './state.js'
 
 function player(id: string, seat: number): PlayerRec {
   return {
@@ -166,5 +174,77 @@ describe('scoping', () => {
   it('closedSubmissions drops drafts inside a closed round', () => {
     const all = [sub('r1', 'a', 3), sub('r1', 'b', 4, 'draft')]
     expect(closedSubmissions(rounds, all).map((s) => s.player)).toEqual(['a'])
+  })
+})
+
+/**
+ * The two scopes.
+ *
+ * The engine was already scope-agnostic — these build the two scopes every game
+ * actually wants, so a per-round callout and an end-of-game award are the same
+ * machinery pointed at different submissions rather than two hand-written
+ * systems per app.
+ */
+describe('scopes', () => {
+  function gs(
+    rounds: RoundRec[],
+    submissions: SubmissionRec[],
+    players: PlayerRec[] = [player('ann', 1), player('bo', 2)],
+  ): GameState<GameRec, SubmissionRec> {
+    return {
+      game: { id: 'g1', join_token: 't', status: 'active', host_user: 'h', created: '' },
+      players,
+      rounds,
+      submissions,
+      current: rounds.find((r) => r.status !== 'closed') ?? null,
+    }
+  }
+
+  const r1 = round('r1', 1, 'closed')
+  const r2 = round('r2', 2, 'review')
+
+  it('scopes a callout to one round, ignoring every other round', () => {
+    const s = gs([r1, r2], [sub('r1', 'ann', 9), sub('r2', 'ann', 4), sub('r2', 'bo', 7)])
+    const ctx = roundScope(s, r2)
+    expect(ctx.rounds).toEqual([r2])
+    expect(ctx.submissions.map((x) => [x.player, x.computed_score])).toEqual([
+      ['ann', 4],
+      ['bo', 7],
+    ])
+  })
+
+  it('fires a callout on a round still in review, because that is when the reveal plays', () => {
+    // Waiting for `closed` would mean the callout never appears — the reveal
+    // runs while the round is still correctable.
+    const s = gs([r2], [sub('r2', 'ann', 4)])
+    expect(roundScope(s, r2).submissions).toHaveLength(1)
+  })
+
+  it('leaves a half-counted pile out of a callout', () => {
+    const s = gs([r2], [sub('r2', 'ann', 4, 'draft'), sub('r2', 'bo', 7, 'final')])
+    expect(roundScope(s, r2).submissions.map((x) => x.player)).toEqual(['bo'])
+  })
+
+  it('drops a seat that had not sat down yet', () => {
+    const late: PlayerRec = { ...player('cy', 3), joined_round: 2 }
+    const s = gs([r1], [sub('r1', 'ann', 9)], [player('ann', 1), late])
+    expect(roundScope(s, r1).players.map((p) => p.id)).toEqual(['ann'])
+    expect(roundScope(s, round('r2', 2, 'open')).players.map((p) => p.id)).toEqual([
+      'ann',
+      'cy',
+    ])
+  })
+
+  it('gives end-of-game awards only what the table has banked', () => {
+    const s = gs([r1, r2], [sub('r1', 'ann', 9), sub('r2', 'ann', 4)])
+    const ctx = gameScope(s)
+    expect(ctx.rounds).toEqual([r1, r2])
+    expect(ctx.submissions.map((x) => x.computed_score)).toEqual([9])
+  })
+
+  it('keeps every seat in the game scope, latecomers included', () => {
+    const late: PlayerRec = { ...player('cy', 3), joined_round: 2 }
+    const s = gs([r1], [sub('r1', 'ann', 9)], [player('ann', 1), late])
+    expect(gameScope(s).players.map((p) => p.id)).toEqual(['ann', 'cy'])
   })
 })
