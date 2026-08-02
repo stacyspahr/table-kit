@@ -106,6 +106,15 @@ export interface CardGrid {
   cellFont?: string
   /** Ring the winning total, the way somebody at the table would. */
   ringWinner?: boolean
+  /**
+   * The ring's own ink, when it is not the number's.
+   *
+   * Play Nine writes a winning total of −11 in red and still rings it in
+   * pencil, because on the table the ring came from the pencil and the red is
+   * a convention about the number. A ring that inherited the number's color
+   * would be a detail the photograph got wrong.
+   */
+  ringColor?: string
 }
 
 export interface CardSpec {
@@ -288,7 +297,7 @@ function drawGrid(
     if (row.won && grid.ringWinner) {
       const w = ctx.measureText(row.total.text).width
       ctx.save()
-      ctx.strokeStyle = row.total.color ?? theme.ink
+      ctx.strokeStyle = grid.ringColor ?? row.total.color ?? theme.ink
       ctx.lineWidth = 2.5
       ctx.beginPath()
       ctx.ellipse(totalX, y - 11, Math.max(26, w / 2 + 14), 24, 0, 0, Math.PI * 2)

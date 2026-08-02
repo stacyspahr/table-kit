@@ -231,6 +231,16 @@ describe('renderCard with a grid', () => {
     expect(pen.ellipse).toHaveBeenCalledOnce()
   })
 
+  it('rings in the game’s own ink, not the number’s', async () => {
+    // A −11 is written in red and still ringed in pencil, because on the table
+    // the ring came from the pencil.
+    const s = gridSpec(2, 3)
+    s.grid!.ringColor = '#3a3c42'
+    s.grid!.rows[0]!.total.color = '#b0322a'
+    await renderCard(s)
+    expect(pen.strokeStyle).toBe('#3a3c42')
+  })
+
   it('leaves the ring off when the game does not ask for it', async () => {
     const s = gridSpec(4, 9)
     s.grid!.ringWinner = false
