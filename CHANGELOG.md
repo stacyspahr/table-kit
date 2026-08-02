@@ -7,6 +7,21 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.19.0
+
+- Added: `bootstrapJoin` takes an optional `rosterSort`, defaulting to the
+  alphabetical sort it already used.
+- Why: `seatChoices` CAPS the list it shows, so the roster's sort decides which
+  names survive the cap — not merely the order they appear in. Flip 7's roster
+  carries `last_played` and `games_count` and sorted on them deliberately, so
+  the six names offered are the people most likely to be at the table. Reading
+  that roster alphabetically instead would have quietly changed who gets
+  offered a one-tap seat.
+- It is a parameter for the same reason `rosterFilter` beside it is one: the
+  columns differ per game — Play Nine's roster has no counters to sort on — and
+  the kit must not learn any of them.
+- Widening only. An app that passes nothing behaves exactly as before.
+
 ## v0.15.0
 
 - Added to `styles.css`: `label`, `input`, `textarea`, `select`, `.code-input`,

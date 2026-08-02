@@ -58,6 +58,7 @@ export async function bootstrapJoin<G extends GameRec>({
   token,
   deviceId,
   rosterFilter,
+  rosterSort,
 }: {
   pb: PocketBase
   config: TableKitConfig
@@ -70,6 +71,17 @@ export async function bootstrapJoin<G extends GameRec>({
    * `retired!=true` in one, `active=true` in another.
    */
   rosterFilter?: string
+  /**
+   * Sort for the roster read. Defaults to alphabetical.
+   *
+   * `seatChoices` caps the list it shows, so this decides WHICH names survive
+   * the cap — not merely their order. A game that keeps play counters can put
+   * the people most likely to be at the table on top (`-last_played`); one
+   * whose roster carries no counters has nothing better than a name to sort
+   * on. Same reason `rosterFilter` is a parameter: the columns differ per game
+   * and the kit must not learn any of them.
+   */
+  rosterSort?: string
 }): Promise<JoinResult<G>> {
   const c = config.collections
   const rosterCollection = c.roster ?? `${config.appKey}_roster`
@@ -99,7 +111,7 @@ export async function bootstrapJoin<G extends GameRec>({
     try {
       roster = await pb.collection(rosterCollection).getFullList<RosterLike>({
         filter: `owner="${game.host_user}"${rosterFilter ? ` && ${rosterFilter}` : ''}`,
-        sort: 'display_name',
+        sort: rosterSort ?? 'display_name',
       })
     } catch {
       /* no roster yet, or unreadable — costs a shortcut, never the join */
