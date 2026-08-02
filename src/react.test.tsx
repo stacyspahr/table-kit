@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { QrPanel } from './react.js'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QrPanel, useAutoSubmit } from './react.js'
 
 const TOKEN = 'a'.repeat(32)
 
@@ -398,5 +398,73 @@ describe('taking a seat', () => {
     const long = Array.from({ length: 12 }, (_, n) => ({ id: `r${n}`, display_name: `Name${n}` }))
     render(<SeatClaim {...base} roster={long} />)
     expect(screen.getByPlaceholderText('Type a letter or two')).toBeTruthy()
+  })
+})
+
+describe('the auto-submit countdown', () => {
+  afterEach(() => vi.useRealTimers())
+
+  function Harness({ armed, onFire }: { armed: boolean; onFire: () => void }) {
+    const { running, remaining } = useAutoSubmit({ armed, seconds: 15, onFire })
+    return <span data-testid="state">{running ? `running ${remaining}` : 'idle'}</span>
+  }
+
+  it('hands the round in once the clock runs out', () => {
+    vi.useFakeTimers()
+    const onFire = vi.fn()
+    render(<Harness armed onFire={onFire} />)
+    // A shade past the deadline: frames land every 16ms, so the last one inside
+    // a flat 15,000 window is at 14,992 and the clock never quite runs out.
+    act(() => void vi.advanceTimersByTime(15_100))
+    expect(onFire).toHaveBeenCalledOnce()
+  })
+
+  it('fires exactly once however many frames land after it', () => {
+    // A round close is not a no-op — the server opens the next round off it.
+    // A second one would deal twice.
+    vi.useFakeTimers()
+    const onFire = vi.fn()
+    render(<Harness armed onFire={onFire} />)
+    act(() => void vi.advanceTimersByTime(60_000))
+    expect(onFire).toHaveBeenCalledOnce()
+  })
+
+  it('stops for good when someone at the table touches the screen', () => {
+    vi.useFakeTimers()
+    const onFire = vi.fn()
+    render(<Harness armed onFire={onFire} />)
+    act(() => void vi.advanceTimersByTime(3_000))
+    act(() => void fireEvent.pointerDown(window))
+    act(() => void vi.advanceTimersByTime(60_000))
+    expect(onFire).not.toHaveBeenCalled()
+    expect(screen.getByTestId('state').textContent).toBe('idle')
+  })
+
+  it('never runs on a phone that was not given the clock', () => {
+    // Every phone renders the same button; only one may hold the countdown.
+    vi.useFakeTimers()
+    const onFire = vi.fn()
+    render(<Harness armed={false} onFire={onFire} />)
+    act(() => void vi.advanceTimersByTime(60_000))
+    expect(onFire).not.toHaveBeenCalled()
+    expect(screen.getByTestId('state').textContent).toBe('idle')
+  })
+
+  it('comes back armed for the next round after a cancel', () => {
+    // Cancelling is about THIS round. A table that said wait once should not
+    // have to say it again every round for the rest of the night.
+    vi.useFakeTimers()
+    const onFire = vi.fn()
+    const { rerender } = render(<Harness armed onFire={onFire} />)
+    act(() => void fireEvent.pointerDown(window))
+    act(() => void vi.advanceTimersByTime(60_000))
+    expect(onFire).not.toHaveBeenCalled()
+
+    rerender(<Harness armed={false} onFire={onFire} />)
+    rerender(<Harness armed onFire={onFire} />)
+    // A shade past the deadline: frames land every 16ms, so the last one inside
+    // a flat 15,000 window is at 14,992 and the clock never quite runs out.
+    act(() => void vi.advanceTimersByTime(15_100))
+    expect(onFire).toHaveBeenCalledOnce()
   })
 })

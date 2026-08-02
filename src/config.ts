@@ -44,6 +44,16 @@ export interface TableKitConfig {
    */
   winner: Winner
   /**
+   * Fewest seats a game may start with. Defaults to 1 — which is to say, no
+   * rule beyond "somebody is here."
+   *
+   * The NUMBER is the game's, never the kit's: Flip 7 needs three, Play Nine
+   * and Beat the Heat play with two. A kit that knew any of those numbers
+   * would be a kit that knew the games, which the seam rule forbids. All the
+   * kit owns is that the rule is enforced and how far short the table is.
+   */
+  minPlayers?: number
+  /**
    * Backend origin. **Required, and never defaulted.**
    *
    * The platform convention is that frontends read this from `VITE_PB_URL` and

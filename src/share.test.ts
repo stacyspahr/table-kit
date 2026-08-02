@@ -298,8 +298,18 @@ describe('shareCard', () => {
   it('uses the share sheet when the phone will take a file', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal('navigator', { canShare: () => true, share })
-    expect(await shareCard(file, 'Flip 7')).toBe('shared')
+    expect(await shareCard(file)).toBe('shared')
     expect(share).toHaveBeenCalledOnce()
+  })
+
+  it('sends the card and nothing else', async () => {
+    // iOS staples a title beside the image as a line of text, so a card that
+    // already says the game's name across the top was going out with the name
+    // written twice.
+    const share = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { canShare: () => true, share })
+    await shareCard(file)
+    expect(share).toHaveBeenCalledWith({ files: [file] })
   })
 
   it('treats a canceled sheet as done, not as a failure to fall back from', async () => {
@@ -309,7 +319,7 @@ describe('shareCard', () => {
     const click = vi.fn()
     vi.stubGlobal('navigator', { canShare: () => true, share: vi.fn().mockRejectedValue(err) })
     vi.spyOn(document, 'createElement').mockReturnValue({ click } as any)
-    expect(await shareCard(file, 'Flip 7')).toBe('shared')
+    expect(await shareCard(file)).toBe('shared')
     expect(click).not.toHaveBeenCalled()
   })
 
@@ -318,7 +328,7 @@ describe('shareCard', () => {
     vi.stubGlobal('navigator', { canShare: () => false })
     vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: vi.fn() })
     vi.spyOn(document, 'createElement').mockReturnValue({ click } as any)
-    expect(await shareCard(file, 'Flip 7')).toBe('downloaded')
+    expect(await shareCard(file)).toBe('downloaded')
     expect(click).toHaveBeenCalledOnce()
   })
 
@@ -327,6 +337,6 @@ describe('shareCard', () => {
     vi.stubGlobal('navigator', {})
     vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: vi.fn() })
     vi.spyOn(document, 'createElement').mockReturnValue({ click } as any)
-    expect(await shareCard(file, 'Flip 7')).toBe('downloaded')
+    expect(await shareCard(file)).toBe('downloaded')
   })
 })

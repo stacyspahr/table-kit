@@ -546,11 +546,18 @@ export type ShareOutcome = 'shared' | 'downloaded' | 'unavailable'
  * file can still save a picture, and the person then sends it themselves.
  * A canceled share is not a failure — it reports `shared`, because the user
  * did exactly what they meant to.
+ *
+ * ── The card goes on its own ─────────────────────────────────────────────
+ * No `title`. iOS renders one as a line of text stapled beside the image, so
+ * sharing a finished board sent "Flip 7" along with a picture that already
+ * says Flip 7 across the top of it. The card is the whole message; the
+ * download fallback names the file from `file.name` and never wanted a title
+ * either.
  */
-export async function shareCard(file: File, title: string): Promise<ShareOutcome> {
+export async function shareCard(file: File): Promise<ShareOutcome> {
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title })
+      await navigator.share({ files: [file] })
       return 'shared'
     } catch (e: any) {
       // AbortError is the user closing the sheet. Nothing to report and

@@ -7,6 +7,34 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.20.0
+
+Four playability fixes off a real game night.
+
+- Added: `minPlayers` on the config, `lobbyState()`, and a `useLobby` hook that
+  polls the seats. A lobby now fills up in front of the host instead of sitting
+  as dead space, and the start is held until the table is big enough.
+- The FLOOR is the game's, never the kit's — Flip 7 needs three, the other two
+  play with two. `lobbyState` reports `shortBy` and `minPlayers` so the app can
+  write its own sentence around a number that is guaranteed to be the one being
+  enforced. The default is 1, which is the `players.length === 0` check every
+  app was already carrying, expressed as a rule.
+- Added: `LobbySeats` — names only. What the lobby SAYS stays with the game.
+- Added: `useAutoSubmit` + `CountdownRing`. Once everybody's score is down, a
+  ring drains over 15 seconds and the round hands itself in.
+- ⚠️ Exactly ONE device may arm it. Every phone renders the same "score the
+  round" button, so arming it everywhere would have the whole table close the
+  same round at the same instant — and a close is not a no-op, the server
+  opens the next round off it. The app passes `armed` on the host's phone and
+  false on the rest; the kit does not pick.
+- Any touch cancels, and it stays cancelled for that round. The game is played
+  on the table, and fifteen seconds after the last score the table is often
+  still talking. Re-arming after someone has said wait is the app arguing.
+- ⚠️ Changed shape: `shareCard(file)` no longer takes a title. iOS staples one
+  beside the image as a line of text, so a card that already says the game's
+  name across the top went out with the name written twice. Callers must drop
+  the second argument.
+
 ## v0.19.0
 
 - Added: `bootstrapJoin` takes an optional `rosterSort`, defaulting to the

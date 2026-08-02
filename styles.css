@@ -646,3 +646,41 @@ select:focus {
   letter-spacing: 0.35em;
   text-align: center;
 }
+
+/* ── The lobby's seats ───────────────────────────────────────────────────
+   Plain rows, not tappable ones: this list is something to watch fill, and
+   nothing on it does anything when pressed. Giving it the `.row` button look
+   would promise a tap that isn't there. */
+.tk-lobby-seats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--tk-line);
+}
+
+.tk-lobby-seats li:last-child {
+  border-bottom: none;
+}
+
+/* ── The auto-submit ring ────────────────────────────────────────────────
+   Sits inside the button it is counting down for, so the thing about to
+   happen and the clock on it are never in two different places. It starts at
+   twelve o'clock because that is where a clock starts. */
+.tk-ring {
+  transform: rotate(-90deg);
+  flex: none;
+}
+
+.tk-ring circle {
+  fill: none;
+}
+
+.tk-ring-track {
+  stroke: currentColor;
+  opacity: 0.25;
+}
+
+.tk-ring-head {
+  stroke: currentColor;
+}

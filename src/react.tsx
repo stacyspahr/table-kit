@@ -11,11 +11,14 @@
  * module and you need both; import the core and you need neither.
  */
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import type PocketBase from 'pocketbase'
 import QRCode from 'qrcode'
 import { joinUrl, keepAwake } from './session.js'
 import { watchForUpdates } from './version.js'
 import { recalledSeats, rememberSeat, seatChoices } from './roster.js'
+import { fetchSeats, lobbyState, type LobbyState } from './lobby.js'
+import type { TableKitConfig } from './config.js'
 import type { RosterLike } from './join.js'
 import type { PlayerRec } from './state.js'
 
@@ -770,5 +773,206 @@ export function SeatClaim({
         </section>
       )}
     </div>
+  )
+}
+
+/**
+ * Watch a lobby fill up.
+ *
+ * A lobby that shows nothing until the game starts is dead space, and the host
+ * is left guessing whether the quiet means everyone has scanned in or that
+ * nobody has. Polling rather than realtime for the reason the play screen
+ * already gives: a three-second tick is invisible at a card table, and the kit
+ * dropped realtime deliberately.
+ *
+ * `active` exists so the poll stops the moment the game leaves the lobby. An
+ * interval that outlives the screen it belongs to is how a finished game keeps
+ * talking to the server all evening.
+ */
+export function useLobby({
+  pb,
+  config,
+  gameId,
+  active,
+  intervalMs = 3000,
+  initial = [],
+}: {
+  pb: PocketBase
+  config: TableKitConfig
+  gameId: string | undefined
+  active: boolean
+  intervalMs?: number
+  /** Seats already loaded, so the list never flashes empty on mount. */
+  initial?: PlayerRec[]
+}): LobbyState & { players: PlayerRec[]; refresh: () => Promise<void> } {
+  const [players, setPlayers] = useState<PlayerRec[]>(initial)
+
+  const refresh = useCallback(async () => {
+    if (!gameId) return
+    try {
+      setPlayers(await fetchSeats(pb, config, gameId))
+    } catch {
+      /* transient — the next tick tries again, and a stale list is far better
+         than an empty one under someone watching for their own name */
+    }
+  }, [pb, config, gameId])
+
+  useEffect(() => {
+    if (!active || !gameId) return
+    void refresh()
+    const id = window.setInterval(() => void refresh(), intervalMs)
+    return () => window.clearInterval(id)
+  }, [active, gameId, intervalMs, refresh])
+
+  return { ...lobbyState(players.length, config), players, refresh }
+}
+
+/**
+ * The seats, as they arrive.
+ *
+ * Names only. What the lobby SAYS around this list — what the game is called,
+ * what it is played to, whose turn it is to deal — stays with the game, which
+ * is why nothing here takes a sentence.
+ */
+export function LobbySeats({ players }: { players: PlayerRec[] }) {
+  return (
+    <ul className="list tk-lobby-seats">
+      {players.map((p) => (
+        <li key={p.id}>
+          <span className="row-main">{p.display_name}</span>
+          {!p.device_id && <span className="pill">no phone</span>}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * Hand the round in on its own once everybody's score is down.
+ *
+ * ── Who may arm this ─────────────────────────────────────────────────────
+ * Exactly one device, and the kit does not pick which. Every phone in the game
+ * renders the same "score the round" button, so arming this everywhere would
+ * have every phone at the table fire the same close at the same instant — and
+ * a round close is not a no-op on the server, it opens the next round. The app
+ * passes `armed` true on ONE device (the host's) and false on the rest.
+ *
+ * ── Why a touch cancels ──────────────────────────────────────────────────
+ * The first non-negotiable is that the game is played on the table. Fifteen
+ * seconds after the last score lands, the table is often still talking about
+ * the hand — so any touch anywhere stops the clock and hands the pace back to
+ * the room. It stays stopped until the round is over; re-arming after someone
+ * has said "wait" is the app arguing with them.
+ */
+export function useAutoSubmit({
+  armed,
+  seconds = 15,
+  onFire,
+}: {
+  armed: boolean
+  seconds?: number
+  onFire: () => void
+}): { running: boolean; progress: number; remaining: number; cancel: () => void } {
+  const [progress, setProgress] = useState(1)
+  const [cancelled, setCancelled] = useState(false)
+
+  // Held in a ref so a caller that rebuilds its handler every render — which is
+  // most of them — doesn't restart the countdown on every tick it causes.
+  const fire = useRef(onFire)
+  fire.current = onFire
+
+  const running = armed && !cancelled
+
+  // Disarming resets, so the next round starts with a full ring rather than
+  // whatever was left on screen when this one closed.
+  useEffect(() => {
+    if (!armed) {
+      setCancelled(false)
+      setProgress(1)
+    }
+  }, [armed])
+
+  useEffect(() => {
+    if (!running) return
+    const cancel = () => setCancelled(true)
+    // Capture phase: the tap that cancels must not also be the tap that lands
+    // on whatever is underneath it.
+    window.addEventListener('pointerdown', cancel, true)
+    window.addEventListener('keydown', cancel, true)
+    return () => {
+      window.removeEventListener('pointerdown', cancel, true)
+      window.removeEventListener('keydown', cancel, true)
+    }
+  }, [running])
+
+  useEffect(() => {
+    if (!running) return
+    const total = seconds * 1000
+    const started = performance.now()
+    // A ring that sweeps smoothly is motion for its own sake. Under
+    // reduced-motion it still counts — it just steps once a second.
+    const stepped = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    let raf = 0
+    let done = false
+
+    const tick = () => {
+      const elapsed = performance.now() - started
+      const left = Math.max(0, 1 - elapsed / total)
+      setProgress(stepped ? Math.ceil(left * seconds) / seconds : left)
+      if (elapsed >= total) {
+        // Guarded rather than trusted: a frame landing after the fire would
+        // otherwise close the round a second time.
+        if (!done) {
+          done = true
+          fire.current()
+        }
+        return
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [running, seconds])
+
+  return {
+    running,
+    progress,
+    remaining: Math.ceil(progress * seconds),
+    cancel: () => setCancelled(true),
+  }
+}
+
+/** The draining ring. Purely a readout of `useAutoSubmit` — it owns no timer. */
+export function CountdownRing({
+  progress,
+  size = 26,
+  stroke = 3,
+}: {
+  progress: number
+  size?: number
+  stroke?: number
+}) {
+  const r = (size - stroke) / 2
+  const circumference = 2 * Math.PI * r
+  return (
+    <svg
+      className="tk-ring"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden="true"
+    >
+      <circle className="tk-ring-track" cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} />
+      <circle
+        className="tk-ring-head"
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        strokeWidth={stroke}
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference * (1 - progress)}
+        strokeLinecap="round"
+      />
+    </svg>
   )
 }
