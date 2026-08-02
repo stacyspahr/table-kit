@@ -11,7 +11,19 @@ import type { Queue } from './queue.js'
 import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './state.js'
 
 export interface Actions<G extends GameRec, S extends SubmissionRec> {
-  loadState(gameId: string): Promise<GameState<G, S>>
+  /**
+   * Read a whole game.
+   *
+   * ⚠️ Defaults to the GUEST client, which is bound to one game — its token
+   * carries the game it joined, and every rule that admits a guest admits it
+   * only for that game. Reading any OTHER game with it comes back EMPTY rather
+   * than failing, so a screen that swallows errors shows a blank board and no
+   * reason for it.
+   *
+   * A host screen must therefore pass `pbHost`, which the rules admit for
+   * every game it owns. That is the whole reason this takes a client.
+   */
+  loadState(gameId: string, client?: PocketBase): Promise<GameState<G, S>>
   submit(opts: { round: RoundRec; player: PlayerRec; submittedBy: PlayerRec; payload: Record<string, unknown>; score: number }): string
   save(opts: {
     round: RoundRec
@@ -37,14 +49,14 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
   const { pb, config, queue } = deps
   const c = config.collections
 
-  async function loadState(gameId: string): Promise<GameState<G, S>> {
+  async function loadState(gameId: string, client: PocketBase = pb): Promise<GameState<G, S>> {
     const [game, players, rounds] = await Promise.all([
-      pb.collection(c.games).getOne<G>(gameId),
-      pb.collection(c.players).getFullList<PlayerRec>({
+      client.collection(c.games).getOne<G>(gameId),
+      client.collection(c.players).getFullList<PlayerRec>({
         filter: `game="${gameId}"`,
         sort: 'seat_order',
       }),
-      pb.collection(c.rounds).getFullList<RoundRec>({
+      client.collection(c.rounds).getFullList<RoundRec>({
         filter: `game="${gameId}"`,
         sort: 'round_number',
       }),
@@ -52,7 +64,7 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
 
     const roundIds = rounds.map((r) => `round="${r.id}"`).join(' || ')
     const submissions = roundIds
-      ? await pb.collection(c.submissions).getFullList<S>({ filter: roundIds })
+      ? await client.collection(c.submissions).getFullList<S>({ filter: roundIds })
       : []
 
     const current = rounds.find((r) => r.status !== 'closed') ?? null

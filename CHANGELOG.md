@@ -7,6 +7,21 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.20.2
+
+- Fixed: `loadState(gameId, client?)` now takes the client to read with, and
+  defaults to the guest as before.
+- Why it matters: the guest credential is bound to ONE game — its token carries
+  the game it joined, and every rule that admits a guest admits it only for
+  that game. Reading any other game with it comes back **empty rather than
+  failing**, so a host screen opening an old game showed an empty board with
+  nothing to say why. Flip 7's host screen was doing exactly this; it had a
+  `pb` parameter it passed and the kit quietly ignored.
+- A host client is admitted for every game it owns, so a host screen should
+  pass `pbHost`. Play Nine and Beat the Heat read their host screens with
+  `pbHost` directly and were never affected.
+- Widening only. Passing nothing behaves exactly as before.
+
 ## v0.20.1
 
 - Fixed: `.btn` is `display: block`, so a `CountdownRing` inside one sat on the
