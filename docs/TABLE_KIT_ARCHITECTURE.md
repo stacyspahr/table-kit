@@ -2,7 +2,7 @@
 
 **Version 0.2 — updated 2026-08-03**
 
-This document is about the *suite*, not about Beat the Heat. It defines the seam
+This document is about the *suite*, not about any one game. It defines the seam
 between "how a game night works" and "how this particular game scores," so that
 game #3 and #4 cost a weekend instead of a month.
 
