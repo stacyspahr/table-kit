@@ -201,6 +201,35 @@ Flip 7 spaces buttons with their own margins while Beat the Heat spaces them
 from the container. That disagreement is real and unsettled; it is now visible
 in a diff instead of buried in a second copy of the whole system.
 
+### The chevron means somebody else (v0.25.0)
+
+`.row.tappable` paints a `›` so a row that goes somewhere looks like it does.
+Beat the Heat's second game night found the hole in that: the mark was on
+*every* row of the live board, including your own, so it meant two different
+things on one screen — "enter for them" on eleven rows and "enter mine" on
+one. That put two routes to your own keypad on the screen at once, the row and
+the big button under it, and it spent the one mark that was supposed to teach
+proxy entry on the row that has nothing to do with proxying.
+
+**The rule: your own row is not a control for you. The primary button is.**
+
+- A row on a live board is marked `tappable` only when tapping it acts *for
+  another seat*. The chevron then carries exactly one meaning, and it is the
+  meaning nobody discovers on their own.
+- Your own row stays a plain `.row.mine` — it still carries what you handed in,
+  because that is information, not an instruction.
+- The primary button owns your entry for the whole round, which means it does
+  not vanish once you are in. It goes quiet: `.btn.big.primary` "Enter my pile"
+  while you owe, `.btn.ghost` "Change my pile" after. Correcting your own entry
+  was the only thing the row tap did that the button did not, and an unmarked
+  tap target is the wrong home for it.
+
+Beat the Heat follows this. **Play Nine does not yet** — its board has no
+chevrons at all and still explains itself in fine print under the list
+(*"Tap any row to enter for that seat"*), which is the exact construction the
+mark replaced. It should take both halves at once: chevrons on other seats,
+and its own-row tap folded into the button.
+
 ## Order of work
 
 Not before a game night. Each step ships separately; the first two are
