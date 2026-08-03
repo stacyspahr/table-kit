@@ -8,13 +8,14 @@ sentence decides what belongs here. If something needs `if (game === 'heat')`
 anywhere, it is not kit code.
 
 Design rationale, the resilience guarantees, and the versioning plan live in
-`~/beat-the-heat/docs/TABLE_KIT_ARCHITECTURE.md`.
+[`docs/TABLE_KIT_ARCHITECTURE.md`](docs/TABLE_KIT_ARCHITECTURE.md). What the
+package actually exposes is [`docs/SPEC_SHEET.md`](docs/SPEC_SHEET.md).
 
 ## Install
 
 ```json
 "dependencies": {
-  "table-kit": "github:stacyspahr/table-kit#v0.1.0"
+  "table-kit": "github:stacyspahr/table-kit#v0.21.0"
 }
 ```
 

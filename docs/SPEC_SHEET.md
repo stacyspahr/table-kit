@@ -3,7 +3,7 @@
 **v0.21.0 · 246 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
-[`TABLE_KIT_ARCHITECTURE.md`](../../beat-the-heat/docs/TABLE_KIT_ARCHITECTURE.md);
+[`TABLE_KIT_ARCHITECTURE.md`](TABLE_KIT_ARCHITECTURE.md);
 the *what changed when* lives in [`CHANGELOG.md`](../CHANGELOG.md). This is the
 reference you keep open while writing a game.
 
