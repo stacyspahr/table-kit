@@ -1,6 +1,6 @@
 # table-kit — spec sheet
 
-**v0.5.2 · 103 tests · `stacyspahr/table-kit` (public)**
+**v0.21.0 · 246 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
 [`TABLE_KIT_ARCHITECTURE.md`](../../beat-the-heat/docs/TABLE_KIT_ARCHITECTURE.md);
@@ -14,31 +14,37 @@ reference you keep open while writing a game.
 | | |
 |---|---|
 | **Owns** | Everything about a game night except how a round is scored |
-| **Consumed as** | `"table-kit": "github:stacyspahr/table-kit#v0.5.2"` — a tag, never a branch |
+| **Consumed as** | `"table-kit": "github:stacyspahr/table-kit#v0.21.0"` — a tag, never a branch |
 | **Built by** | npm running the git dep's `prepare` script (`tsc`), locally and on Vercel |
 | **Shipped as** | Compiled into each app's bundle at build time. Not a service, not a runtime dep |
 | **Backend** | One shared PocketBase, one `appKey` per game, collections prefixed to match |
-| **Consumers** | `flip7-scorer` (core, since 2026-08-01) · `beat-the-heat` (core) |
+| **Consumers** | `flip7-scorer` (core, since 2026-08-01) · `beat-the-heat` (core) · `play-nine` (core, built on it from commit 1) |
 | **Hard rule** | The kit may not import from any app. Ever. |
 
 ---
 
 ## Entry points
 
-Four, and the split is deliberate — importing the core must never pull React or
+Six, and the split is deliberate — importing the core must never pull React or
 `node:fs` in behind it.
 
 | Import | Contains | Needs |
 |---|---|---|
-| `table-kit` | The core: config, session, clients, state, queue, actions, awards, roster, nights, PWA, version | `pocketbase` |
-| `table-kit/react` | `QrPanel` | `react`, `qrcode` (optional peers) |
+| `table-kit` | The core: config, session, clients, state, queue, actions, awards, reveal, share, roster, nights, PWA, version | `pocketbase` |
+| `table-kit/react` | The screens and hooks — see [React](#react--table-kitreact) | `react`, `qrcode` (optional peers) |
+| `table-kit/server` | `createGate` — the auth gate for an app's own `/api` route | nothing (plain `fetch`) |
 | `table-kit/roster` | Seat-claim logic alone — pure, no PocketBase | nothing |
 | `table-kit/build` | `writeVersionFile`, `kitVersion` — Node only, build time | nothing |
-| `table-kit/styles.css` | The kit's own classes (`.qr-*`, `.brand`, screen, card, row) | — |
+| `table-kit/styles.css` | The kit's own classes (`.qr-*`, `.brand`, `.sheet-top`, `.tabs`, screen, card, row) | — |
 
 `table-kit/roster` exists so an app that hasn't adopted the core can still take
 the seat shortcuts. That's how Flip 7 got its first shared code, ahead of the
 full migration.
+
+⚠️ **`table-kit/server` is the one entry point that never runs in a browser.**
+It is imported by a Vercel function, so it has no DOM and does not use the
+PocketBase SDK — just `fetch` against the REST API. Keeping the core
+framework-free is what makes that possible.
 
 ---
 
@@ -275,10 +281,70 @@ because it is baked into the bundle.
 
 ### React — `table-kit/react`
 
+Screens: `HostLogin`, `NoAccess`, `Pending`, `SeatClaim`, `InviteHost`,
+`LobbySeats`, `QrPanel`, `UpdateBanner`, `RulesSheet`.
+Hooks and parts: `useLobby`, `useAutoSubmit`, `CountdownRing`.
+
 `QrPanel({ token, gameName, onClose })`. Full-screen join QR, reachable at any
 point in a game and showable by any joined player, not just the host — routing
 every stranded player through the host makes the host a bottleneck mid-hand.
 Four-module quiet zone, plain black on white regardless of theme.
+
+`RulesSheet({ sections, sourceLabel, canAsk, onClose, … })` — v0.21.0. The
+offline rulebook, its search, the two tabs, the sticky header, and the ask
+thread. The game supplies everything with words in it:
+
+| Prop | For |
+|---|---|
+| `sections` | The rulebook, **in teaching order** — see the note below |
+| `sourceLabel` | How a tagged entry reads: `{ ruling: 'table ruling' }` |
+| `canAsk` | Whether the Ask tab exists at all. **Never the real gate** — the endpoint checks again |
+| `authToken` | `() => string`. A *function*: a host's token is refreshed behind the app's back, and a component holding the value it had at mount eventually presents a dead one |
+| `askContext` | Merged into the request body — `{ goal }`, `{ mode }`, `{ hole }` |
+| `adviser` | "rules official", "rules consultant" — what this game calls it |
+| `askIntro`, `askExample` | The instruction and the example question |
+| `askEndpoint` | Defaults to `/api/ruling` |
+
+⚠️ **It opens on the rulebook, not on Ask, and that is a design decision rather
+than a default.** These games get given away in printed boxes with no rulebook,
+so the sheet is the only rules a first-timer will ever have and it must greet
+them with the lesson. Tabs exist so the adviser is one tap away *without*
+demoting it.
+
+---
+
+### Server — `table-kit/server`
+
+`createGate({ pbUrl, app, guests, games, users?, grants?, role? })` →
+`{ verifyHost, verifyPlayer, verifyAsker }`. Each takes the request and returns
+the record (or `{ role, id, game }` for `verifyAsker`), or `null`.
+
+```js
+const gate = createGate({
+  pbUrl: process.env.VITE_PB_URL,
+  app: 'heat', guests: 'heat_guests', games: 'heat_games',
+})
+if (!(await gate.verifyAsker(req))) return res.status(401).json({ error: '…' })
+```
+
+Two kinds of caller are admitted. A **host** is a platform user, approved, with
+a grant for this app. A **player** is anonymous but not unidentified: joining by
+QR mints a credential in `<app>_guests` bound to one game, and PocketBase will
+vouch for it.
+
+> ⚠️ **The active-game check is the whole gate for a player.** A credential from
+> a finished night still validates — every join hook lets a returning phone back
+> in so it can see the final card — so admitting on the credential alone leaves
+> every game ever played holding a key to a paid endpoint forever.
+
+> ⚠️ **`role` is unset by default.** All three apps only ever checked that a
+> grant row exists; quietly requiring `role="editor"` would lock out any grant
+> that predates roles.
+
+Nothing here trusts the token's contents. It is handed back to PocketBase, and
+the game is read with the *caller's* own token — so the collection rule that
+says "a guest sees only its own game" does the scoping, and this file never
+restates it.
 
 ---
 
@@ -286,10 +352,15 @@ Four-module quiet zone, plain black on white regardless of theme.
 
 | The kit | The game |
 |---|---|
-| Seats, joining, sync, resilience, leaderboard mechanics, awards engine, PWA chrome | Entry UI, scoring functions, sort direction, end conditions, award **definitions**, theme |
+| Seats, joining, sync, resilience, leaderboard mechanics, awards engine, share-card renderer, the rules **screen**, who may ask the adviser, PWA chrome | Entry UI, scoring functions, sort direction, end conditions, award **definitions**, the **rulebook**, the share card's words, theme |
 
 The test for a new feature: would a second, unrelated game want it unchanged? If
 it needs `if (game === 'heat')` anywhere, it is not kit code.
+
+The second test, and the stronger one now that there are three apps: **if all
+three already have a near-identical copy of it, it is kit.** That is what moved
+the rules sheet and the auth gate in v0.21.0 — three copies, drifting, differing
+only in wording.
 
 ---
 
@@ -317,8 +388,8 @@ for every game in the suite.
 
 | Bump | Means | Safe to take? |
 |---|---|---|
-| `v0.5.**2**` | Bug fix | Always |
-| `v0.**6**.0` | New capability, nothing moved | Always |
+| `v0.21.**1**` | Bug fix | Always |
+| `v0.**22**.0` | New capability, nothing moved | Always |
 | `v**1**.0.0` | Something changed shape | Read the changelog first |
 
 Pin to tags. A branch reference means redeploying for an unrelated reason
@@ -327,7 +398,8 @@ silently pulls in whatever `main` has that day.
 Check where things stand with **`kit-status`** (in `~/.zshrc`, next to `ship`).
 It shows **pinned** (package.json = committed) against **deployed** (the live
 `version.json` = actually serving) — they diverge when a bump was never shipped,
-which is invisible any other way.
+which is invisible any other way. ⚠️ It does not list Play Nine; check that one
+with `curl -s https://play-nine-golf.vercel.app/version.json`.
 
 **Local dev:** `npm link ../table-kit`. The footgun is shipping an app whose
 linked kit has changes that were never tagged — the deploy silently uses the old
