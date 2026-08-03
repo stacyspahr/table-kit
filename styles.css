@@ -805,3 +805,99 @@ select:focus {
     );
   }
 }
+
+
+/* ── the rulings review list ──────────────────────────────────────────────
+ *
+ * A reading screen, not a control panel. The QUESTION is what you scan — it is
+ * the thing that tells you whether the rulebook has a hole — so it leads at
+ * full weight, and the ruling sits under it quieter. The buttons come last
+ * because the decision is made by the time your eye reaches them.
+ *
+ * Sentence case throughout, including the pile headings, against the usual
+ * chrome-in-caps rule: every word on this screen is CONTENT. What somebody
+ * asked and what the adviser answered are prose, and setting the furniture
+ * around them in caps would make the one thing worth reading compete with the
+ * labels.
+ */
+.tk-ruling-night {
+  margin: 1.1rem 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: var(--tk-chrome-weight);
+  text-transform: var(--tk-chrome-case);
+  letter-spacing: var(--tk-chrome-tracking);
+  color: var(--tk-muted);
+}
+
+.tk-ruling {
+  padding: 0.85rem 0;
+  border-top: var(--tk-border-w) solid var(--tk-line);
+}
+
+.tk-ruling-q {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.tk-ruling-a {
+  margin: 0.5rem 0 0;
+  color: var(--tk-muted);
+  line-height: 1.45;
+}
+
+.tk-ruling-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0.4rem;
+}
+
+.tk-ruling-tag {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: var(--tk-chrome-weight);
+  text-transform: var(--tk-chrome-case);
+  letter-spacing: var(--tk-chrome-tracking);
+  color: var(--tk-muted);
+  background: var(--tk-surface);
+  border: var(--tk-border-w) solid var(--tk-line);
+  border-radius: 999px;
+}
+
+/* The adviser's own words said the rulebook came up short. It is the only tag
+ * that changes what you should DO, so it is the only one that carries colour. */
+.tk-ruling-tag.gap {
+  color: var(--tk-primary-ink);
+  background: var(--tk-primary);
+  border-color: var(--tk-primary);
+}
+
+/* Earlier turns, revealed on tap. Indented rather than bubbled: this is a
+ * transcript being consulted, not a conversation being had. */
+.tk-ruling-turn {
+  margin: 0.5rem 0 0;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--tk-line);
+  font-size: 0.92rem;
+  color: var(--tk-muted);
+}
+
+.tk-ruling-turn.user {
+  font-weight: 600;
+  color: inherit;
+}
+
+.tk-ruling-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.7rem;
+}
+
+.tk-ruling-actions .btn {
+  flex: 1 1 auto;
+  min-width: 9rem;
+  margin: 0;
+}

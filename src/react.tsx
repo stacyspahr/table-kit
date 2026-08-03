@@ -982,6 +982,8 @@ export function CountdownRing({
  * dependency on anything else here — and is re-exported so every consumer
  * still imports one React entry point.
  */
+export { RulingsList } from './triage.js'
+
 export {
   RulesSheet,
   type RuleEntry,

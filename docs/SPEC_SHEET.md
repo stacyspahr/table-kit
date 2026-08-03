@@ -1,6 +1,6 @@
 # table-kit — spec sheet
 
-**v0.21.0 · 246 tests · `stacyspahr/table-kit` (public)**
+**v0.23.0 · 269 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
 [`TABLE_KIT_ARCHITECTURE.md`](TABLE_KIT_ARCHITECTURE.md);
@@ -14,7 +14,7 @@ reference you keep open while writing a game.
 | | |
 |---|---|
 | **Owns** | Everything about a game night except how a round is scored |
-| **Consumed as** | `"table-kit": "github:stacyspahr/table-kit#v0.21.0"` — a tag, never a branch |
+| **Consumed as** | `"table-kit": "github:stacyspahr/table-kit#v0.23.0"` — a tag, never a branch |
 | **Built by** | npm running the git dep's `prepare` script (`tsc`), locally and on Vercel |
 | **Shipped as** | Compiled into each app's bundle at build time. Not a service, not a runtime dep |
 | **Backend** | One shared PocketBase, one `appKey` per game, collections prefixed to match |
@@ -385,13 +385,45 @@ the table could POST a row this endpoint never saw. Reads are host-only, the
 stakes are a family game night, and the alternative is a per-app hook route —
 the one thing this design exists to avoid.
 
+#### Reading them back — `RulingsList` (`table-kit/react`)
+
+`openRulings` / `decideRuling` / `completeRuling` / `dismissRuling` in the core,
+and the host-only review screen in the React entry:
+
+```jsx
+<RulingsList pb={pbHost} collection={RULINGS} onClose={back} />
+```
+
+`RULINGS` comes from `rulingsCollection(GUESTS)` — the same derivation the gate
+uses, so the screen that reads and the endpoint that writes cannot end up
+pointed at two different tables.
+
+Two piles, because they are different jobs on different days: **to look at**
+wants thirty seconds of judgement and can happen anywhere; **waiting on an
+edit** has been judged and needs a machine with an editor.
+
+> ⚠️ **Deciding is not doing.** A triaged ruling stays OPEN — `bucket` is set,
+> `status` is still `new`. `rules/rulebook.js` is a file in a repo, so clearing
+> it at the moment of decision would file the decision and lose the job it
+> created.
+
+> ⚠️ **A question is not automatically a missing rule.** Three buttons, and the
+> middle one matters most: if people keep asking something the rulebook already
+> answers plainly, the sheet buried it, and a fourth entry saying the same thing
+> makes the sheet longer and no clearer.
+
+`looksLikeGap(answer)` tags the rows worth writing a rule for, off the adviser's
+own words — every scorer's prompt instructs it to SAY when the rulebook doesn't
+settle something. A hint, never a filing decision: it is prose matching, so it
+can miss a phrasing.
+
 ---
 
 ## What stays in the game
 
 | The kit | The game |
 |---|---|
-| Seats, joining, sync, resilience, leaderboard mechanics, awards engine, share-card renderer, the rules **screen**, who may ask the adviser, the ruling **record**, PWA chrome | Entry UI, scoring functions, sort direction, end conditions, award **definitions**, the **rulebook**, what `context` means, the share card's words, theme |
+| Seats, joining, sync, resilience, leaderboard mechanics, awards engine, share-card renderer, the rules **screen**, who may ask the adviser, the ruling **record** and its **review screen**, PWA chrome | Entry UI, scoring functions, sort direction, end conditions, award **definitions**, the **rulebook**, what `context` means, the share card's words, theme |
 
 The test for a new feature: would a second, unrelated game want it unchanged? If
 it needs `if (game === 'heat')` anywhere, it is not kit code.
