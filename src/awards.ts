@@ -15,6 +15,20 @@
  * in its degenerate case says so by returning null there, and the engine drops
  * empty awards on the floor.
  *
+ * ── A "nearest to X" award needs a FLOOR ─────────────────────────────────
+ * The trap every game walks into once, and Beat the Heat walked into on its
+ * second night. An award for finishing closest to the line, written as `pick:
+ * 'lowest'` over the distance from it, is not an award — it is a ranking of
+ * everybody who didn't cross, dressed up. Somebody always comes top, including
+ * on a night when the nearest player was half a game away.
+ *
+ * The measure has to return null for anyone outside a qualifying band, and the
+ * band has to be expressed against the game's own goal rather than as a
+ * constant, so it means the same thing in a short game as a long one. Then the
+ * ranking picks the closest of the ones who were genuinely close, and on a
+ * night when nobody was, the engine drops the award — which is the honest
+ * outcome and the whole reason null exists.
+ *
  * ── Why ties always share ────────────────────────────────────────────────
  * There is no tiebreak option. At a table an award is a thing you say out loud,
  * and "Nana and Grandpa both got scorched" is a fine sentence — inventing a

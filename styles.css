@@ -414,6 +414,27 @@
 }
 
 /*
+ * A row that goes somewhere.
+ *
+ * One mark, on every row it is true of, instead of a sentence under the list
+ * saying so. A board where only SOME rows are tappable and none of them look
+ * it is a board people learn by accident — Beat the Heat's said "tap a name to
+ * enter for that seat" in fine print under twelve rows, and a host who had
+ * played it all evening had never read it.
+ *
+ * Muted rather than accented: this is an affordance, not a call to action. The
+ * row it belongs to is already saying whatever it has to say.
+ */
+.row.tappable::after {
+  content: '›';
+  flex: 0 0 auto;
+  margin-left: 2px;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--tk-muted);
+}
+
+/*
  * The row you have PICKED but not yet committed to — the selected game in a
  * new-game list, waiting on the Start button under it.
  *

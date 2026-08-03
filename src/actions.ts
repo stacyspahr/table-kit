@@ -36,6 +36,20 @@ export interface Actions<G extends GameRec, S extends SubmissionRec> {
   }): void
   /** The idempotency key for one seat's entry in one round. */
   entryKey(roundId: string, playerId: string): string
+  /**
+   * Deal. The lobby is over and the table is playing.
+   *
+   * ⚠️ Takes a HOST client, and requires it — there is no guest default the way
+   * `loadState` has one. Only a host may write the games collection, so a guest
+   * client here fails rather than doing nothing, and a signature that let one
+   * through would be an invitation to find that out at a card table.
+   *
+   * The host's own phone is the one holding that client, which is what lets the
+   * button live in the host's SEAT rather than only on the host screen. Before
+   * this, the seated host was shown "deal when everyone has scanned in" on a
+   * screen with no way to deal.
+   */
+  startGame(gameId: string, client: PocketBase): Promise<G>
   closeRound(state: GameState<G, S>): Promise<void>
   openNextRound(state: GameState<G, S>): Promise<void>
   rematch(game: G, players: PlayerRec[], freshToken: string, carry: Record<string, unknown>): Promise<G>
@@ -142,6 +156,11 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
     })
   }
 
+  /** See the note on the interface — the client is required, and must be a host. */
+  async function startGame(gameId: string, client: PocketBase): Promise<G> {
+    return client.collection(c.games).update<G>(gameId, { status: 'active' })
+  }
+
   /**
    * Close the round. That is ALL the client does.
    *
@@ -235,5 +254,5 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
     return next
   }
 
-  return { loadState, submit, save, entryKey, closeRound, openNextRound, rematch }
+  return { loadState, submit, save, entryKey, startGame, closeRound, openNextRound, rematch }
 }

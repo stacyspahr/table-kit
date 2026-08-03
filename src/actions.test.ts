@@ -82,3 +82,49 @@ describe('loadState, and which client reads the game', () => {
     expect(guest.asked).toContain('t_players')
   })
 })
+
+describe('starting the game', () => {
+  /** Records the update it was asked to make, and on which client. */
+  function writer() {
+    const writes: { collection: string; id: string; data: Record<string, unknown> }[] = []
+    const client = {
+      writes,
+      collection(collection: string) {
+        return {
+          update: async (id: string, data: Record<string, unknown>) => {
+            writes.push({ collection, id, data })
+            return { id, ...data }
+          },
+        }
+      },
+    }
+    return client
+  }
+
+  it('deals by moving the game out of the lobby', async () => {
+    const guest = writer()
+    const host = writer()
+    const actions = createActions({ pb: guest as unknown as PocketBase, config, queue })
+
+    const game = await actions.startGame('g1', host as unknown as PocketBase)
+
+    expect(host.writes).toEqual([
+      { collection: 't_games', id: 'g1', data: { status: 'active' } },
+    ])
+    expect(game.status).toBe('active')
+  })
+
+  it('never writes as the guest, whichever client it was built with', async () => {
+    // The seated host's phone holds BOTH credentials, and the kit is built on
+    // the guest one. Only a host may write the games collection, so picking up
+    // the built-in client here would fail at the table on the one tap that
+    // starts the evening.
+    const guest = writer()
+    const host = writer()
+    const actions = createActions({ pb: guest as unknown as PocketBase, config, queue })
+
+    await actions.startGame('g1', host as unknown as PocketBase)
+
+    expect(guest.writes).toHaveLength(0)
+  })
+})

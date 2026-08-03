@@ -7,6 +7,35 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.25.0
+
+Three things a second real game night asked for. All three were the same shape:
+the app knew something and never told the table.
+
+- Added: `startGame(gameId, client)` in the actions, completing the set that
+  already had `closeRound`, `openNextRound` and `rematch`. ⚠️ The client is
+  REQUIRED and must be a host — there is no guest default the way `loadState`
+  has one, because only a host may write the games collection.
+- Why it exists: a host is a player, and takes a seat through the same join
+  link as everyone else. Once seated, all three scorers showed them "deal when
+  everyone has scanned in" — on a screen with no way to deal. Dealing lived on
+  the host screen alone, so the host bounced out of their seat to start the
+  evening and then back into it. The host's phone holds a host credential
+  already; now the button can live where the host is.
+- Added: `Confirm` in `table-kit/react`. A card, not a modal — no overlay, no
+  scroll lock, nothing that lands behind the iOS keyboard. `tone: 'danger'`
+  for a brake in front of something destructive; the plain tone for a teacher
+  in front of something merely unexpected. The confirm button carries the
+  VERB, never "Yes."
+- Added: `.row.tappable`, which draws a `›`. One mark on every row that goes
+  somewhere, instead of a sentence under the list saying so. Beat the Heat's
+  board said "tap a name to enter for that seat" in fine print under twelve
+  rows, and a host who had played all evening had never read it.
+- Docs: a note in the awards engine on why a "nearest to X" award needs an
+  eligibility floor. Without one it is not an award, it is a ranking of
+  everybody who didn't cross, and somebody wins it on a night when the nearest
+  player was half a game away.
+
 ## v0.21.0
 
 The rules sheet becomes the kit's, and so does the gate in front of the adviser.

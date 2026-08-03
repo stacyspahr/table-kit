@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { QrPanel, useAutoSubmit } from './react.js'
+import { Confirm, QrPanel, useAutoSubmit } from './react.js'
 
 const TOKEN = 'a'.repeat(32)
 
@@ -466,5 +466,56 @@ describe('the auto-submit countdown', () => {
     // a flat 15,000 window is at 14,992 and the clock never quite runs out.
     act(() => void vi.advanceTimersByTime(15_100))
     expect(onFire).toHaveBeenCalledOnce()
+  })
+})
+
+describe('the confirm card', () => {
+  it('puts the verb on the button, and only fires on that button', () => {
+    const onConfirm = vi.fn()
+    const onCancel = vi.fn()
+    render(
+      <Confirm
+        title="Enter for Michelle?"
+        body="Do this for a seat with no phone."
+        confirmLabel="Enter for Michelle"
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('Never mind'))
+    expect(onCancel).toHaveBeenCalledOnce()
+    expect(onConfirm).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('Enter for Michelle'))
+    expect(onConfirm).toHaveBeenCalledOnce()
+  })
+
+  it('wears the danger tone only when asked for it', () => {
+    const { container, rerender } = render(
+      <Confirm title="Enter for Michelle?" confirmLabel="Go" onConfirm={() => {}} onCancel={() => {}} />,
+    )
+    expect(container.querySelector('.danger-card')).toBeNull()
+    expect(container.querySelector('.btn.primary')).not.toBeNull()
+
+    rerender(
+      <Confirm
+        title="Delete this game?"
+        confirmLabel="Delete it"
+        tone="danger"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    )
+    expect(container.querySelector('.danger-card')).not.toBeNull()
+    expect(container.querySelector('.btn.danger')).not.toBeNull()
+  })
+
+  it('stands up without a body', () => {
+    const { container } = render(
+      <Confirm title="Sure?" confirmLabel="Do it" onConfirm={() => {}} onCancel={() => {}} />,
+    )
+    expect(screen.getByText('Sure?')).toBeTruthy()
+    expect(container.querySelector('.fine')).toBeNull()
   })
 })

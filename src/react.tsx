@@ -343,6 +343,65 @@ export function NoAccess({ appName, onLogout }: { appName: string; onLogout: () 
   )
 }
 
+/**
+ * "Are you sure?", as a card rather than a dialog.
+ *
+ * ── Why not a modal ──────────────────────────────────────────────────────
+ * Every app in the suite already asks this question, and every one of them
+ * answers it the same way: swap the thing you tapped for a card that states
+ * what is about to happen and offers two buttons. No overlay, no scroll lock,
+ * nothing that can end up behind the iOS keyboard or trap a page that was
+ * mid-scroll. This is that shape, extracted, so the fourth game does not have
+ * to rediscover it.
+ *
+ * ── The two jobs, which are not the same ─────────────────────────────────
+ * A confirm in front of something DESTRUCTIVE is a brake — see `tone:
+ * 'danger'`. A confirm in front of something merely UNEXPECTED is a teacher:
+ * the first time somebody taps a seat that isn't theirs, this is where they
+ * find out entering for other people is a thing the app does on purpose. Write
+ * `body` for the second case even when using it for the first.
+ *
+ * The confirm button carries the VERB, never "Yes" — read on its own, out of
+ * context, across a table, "Yes" says nothing about what is about to happen.
+ */
+export function Confirm({
+  title,
+  body,
+  confirmLabel,
+  cancelLabel = 'Never mind',
+  tone = 'normal',
+  onConfirm,
+  onCancel,
+}: {
+  title: string
+  /** What happens, and why you might want it. Optional — a clear title can stand alone. */
+  body?: ReactNode
+  /** The verb. "Enter for Michelle", "Delete this game" — never "Yes". */
+  confirmLabel: string
+  cancelLabel?: string
+  tone?: 'normal' | 'danger'
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const danger = tone === 'danger'
+  return (
+    <section className={`card ${danger ? 'danger-card' : ''}`}>
+      <h2>{title}</h2>
+      {body && <p className="fine">{body}</p>}
+      <button
+        className={`btn big ${danger ? 'danger' : 'primary'}`}
+        onClick={onConfirm}
+        autoFocus
+      >
+        {confirmLabel}
+      </button>
+      <button className="btn ghost" onClick={onCancel}>
+        {cancelLabel}
+      </button>
+    </section>
+  )
+}
+
 /** Account exists, nobody has approved it yet. */
 export function Pending({ onLogout }: { onLogout: () => void }) {
   return (
