@@ -901,3 +901,11 @@ select:focus {
   min-width: 9rem;
   margin: 0;
 }
+
+/* A question that has been asked before. Not coloured like the gap tag: this
+ * one says LOOK AGAIN, not DO SOMETHING — the second time something comes up is
+ * a reason to read it carefully, not yet a reason to change the rules. */
+.tk-ruling-tag.again {
+  color: inherit;
+  border-color: var(--tk-ink, currentColor);
+}

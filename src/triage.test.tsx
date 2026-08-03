@@ -28,11 +28,18 @@ const gap = {
   context: 'goal 66',
 }
 
-function store(rows: any[]) {
+/**
+ * Two different reads now: the open list, and the settled archive behind the
+ * "asked before" count. The fake honours the filter rather than handing the
+ * same rows to both — an open ruling appearing in its own archive would count
+ * itself, which is a bug the fixture must be able to catch.
+ */
+function store(rows: any[], archive: any[] = []) {
   const updates: { id: string; data: any }[] = []
   const pb = {
     collection: () => ({
-      getFullList: async () => rows,
+      getFullList: async (opts?: any) =>
+        String(opts?.filter).includes('!=') ? archive : rows,
       update: async (id: string, data: any) => {
         updates.push({ id, data })
         return { ...rows.find((r) => r.id === id), ...data }
@@ -42,8 +49,8 @@ function store(rows: any[]) {
   return { pb, updates }
 }
 
-function list(rows: any[]) {
-  const { pb, updates } = store(rows)
+function list(rows: any[], archive: any[] = []) {
+  const { pb, updates } = store(rows, archive)
   return { updates, ...render(<RulingsList pb={pb} collection="heat_rulings" onClose={() => {}} />) }
 }
 
@@ -142,5 +149,45 @@ describe('the rest of the conversation', () => {
     expect(screen.queryByText('What if their hand is empty?')).toBeNull()
     fireEvent.click(await screen.findByText(/The rest of it/))
     expect(screen.getByText('What if their hand is empty?')).toBeTruthy()
+  })
+})
+
+describe('a question that has come up before', () => {
+  it('says which time it is, counting the ones already settled', async () => {
+    // ⚠️ The whole reason this exists. Dismissing the first ask is the correct
+    // move — one person not finding a rule is one person — and it is also what
+    // makes the second one unrecognisable without a count.
+    list([covered], [{ ...covered, id: 'old', status: 'dismissed' }])
+    expect(await screen.findByText('2nd time this has come up')).toBeTruthy()
+  })
+
+  it('stays quiet the first time something is asked', async () => {
+    list([covered], [{ ...covered, id: 'old', question: 'What ends the game?' }])
+    await screen.findByText('Can a person pass on the turn?')
+    expect(screen.queryByText(/time this has come up/)).toBeNull()
+  })
+
+  it('never counts an open question against itself', async () => {
+    // The archive is read with `status != "new"`, so the row on screen cannot
+    // be in it. Worth a test: the tag would otherwise appear on everything.
+    list([covered])
+    await screen.findByText('Can a person pass on the turn?')
+    expect(screen.queryByText(/time this has come up/)).toBeNull()
+  })
+
+  it('still renders the list when the archive cannot be read', async () => {
+    // A nicety on top of the list. No count is a worse screen; a broken one is
+    // a useless screen.
+    const pb = {
+      collection: () => ({
+        getFullList: async (opts?: any) => {
+          if (String(opts?.filter).includes('!=')) throw new Error('nope')
+          return [covered]
+        },
+        update: async (id: string, data: any) => ({ id, ...data }),
+      }),
+    }
+    render(<RulingsList pb={pb} collection="heat_rulings" onClose={() => {}} />)
+    expect(await screen.findByText('Can a person pass on the turn?')).toBeTruthy()
   })
 })

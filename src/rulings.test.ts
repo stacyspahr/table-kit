@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
+  askedBefore,
   completeRuling,
   decideRuling,
   dismissRuling,
   looksLikeGap,
   openRulings,
+  ordinal,
+  pastRulings,
   rulingsCollection,
+  sameQuestion,
   splitRulings,
 } from './rulings.js'
 
@@ -109,5 +113,54 @@ describe('working through them', () => {
     const { pb, calls } = store()
     await dismissRuling(pb, 'heat_rulings', 'r1')
     expect(calls.update[0].data).toEqual({ status: 'dismissed', bucket: '' })
+  })
+})
+
+describe('has this come up before', () => {
+  it('matches the same question asked in different words', () => {
+    expect(
+      sameQuestion('Can a person pass on the turn?', 'can you pass a turn if you want to'),
+    ).toBe(true)
+    expect(sameQuestion('Do I take the whole row?', 'does she take the whole row')).toBe(true)
+  })
+
+  it('sees through plurals, because a table types both', () => {
+    expect(sameQuestion('how many peppers is that card', 'how many pepper on the cards')).toBe(true)
+  })
+
+  it('refuses two questions that merely share a word', () => {
+    // ⚠️ Biased hard towards no. A wrong "asked before" writes a rulebook entry
+    // for an argument that never happened twice; a missed one just leaves you
+    // where you already were.
+    expect(sameQuestion('Can a person pass on the turn?', 'can I pass the deal to her')).toBe(false)
+    expect(sameQuestion('What ends the game?', 'What is a pepper worth?')).toBe(false)
+  })
+
+  it('counts the settled ones, which is the whole point', () => {
+    // Dismissing the first time somebody asks is CORRECT under the triggers —
+    // and it is also what makes the second one invisible without this.
+    const past = [
+      { question: 'can you pass a turn' },
+      { question: 'what happens when the deck runs out' },
+    ]
+    expect(askedBefore('Can a person pass on the turn?', past)).toBe(1)
+    expect(askedBefore('Who deals first?', past)).toBe(0)
+  })
+
+  it('asks the archive for everything already settled', async () => {
+    const { pb, calls } = store()
+    await pastRulings(pb, 'heat_rulings')
+    expect(calls.getFullList[0]).toMatchObject({
+      name: 'heat_rulings',
+      opts: { filter: 'status != "new"', sort: '-created' },
+    })
+  })
+
+  it('says which time it is', () => {
+    expect(ordinal(2)).toBe('2nd')
+    expect(ordinal(3)).toBe('3rd')
+    expect(ordinal(4)).toBe('4th')
+    expect(ordinal(11)).toBe('11th')
+    expect(ordinal(21)).toBe('21st')
   })
 })

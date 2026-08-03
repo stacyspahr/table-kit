@@ -102,6 +102,84 @@ export function looksLikeGap(answer: string): boolean {
 }
 
 /**
+ * Words that carry no signal about what a question was ABOUT.
+ *
+ * Deliberately short and generic. Every word that goes in here is a word two
+ * questions can no longer be told apart by, so the list stops at the ones that
+ * appear in nearly every question somebody types at a card table.
+ */
+const NOISE = new Set([
+  'a', 'about', 'after', 'all', 'am', 'an', 'and', 'any', 'anyone', 'are', 'as', 'at',
+  'be', 'been', 'before', 'but', 'by', 'can', 'cant', 'could', 'did', 'do', 'does', 'doesnt',
+  'dont', 'for', 'from', 'get', 'gets', 'go', 'goes', 'had', 'has', 'have', 'he', 'her',
+  'him', 'his', 'how', 'i', 'if', 'in', 'is', 'it', 'its', 'just', 'me', 'my', 'no', 'not',
+  'of', 'on', 'one', 'or', 'our', 'out', 'over', 'own', 'say', 'says', 'she', 'should', 'so',
+  'some', 'somebody', 'someone', 'still', 'that', 'the', 'their', 'them', 'then', 'there',
+  'they', 'this', 'to', 'up', 'us', 'was', 'we', 'were', 'what', 'when', 'where', 'which',
+  'who', 'why', 'will', 'with', 'would', 'you', 'your',
+])
+
+/**
+ * What a question is about, reduced to the words that carry it.
+ *
+ * Lowercased, stripped of punctuation, de-pluralised crudely (a trailing `s`
+ * goes, so "cards" and "card" are the same thing) and emptied of noise words.
+ * Crude on purpose — see `sameQuestion`.
+ */
+export function questionTerms(question: string): Set<string> {
+  const terms = new Set<string>()
+  for (const raw of String(question).toLowerCase().split(/[^a-z0-9']+/)) {
+    const word = raw.replace(/'/g, '')
+    if (word.length < 2) continue
+    // Crude, and it earns its keep: pepper/peppers, card/cards, row/rows.
+    const stem = word.length > 3 && word.endsWith('s') ? word.slice(0, -1) : word
+    if (NOISE.has(stem) || NOISE.has(word)) continue
+    terms.add(stem)
+  }
+  return terms
+}
+
+/**
+ * Are these two questions the same question?
+ *
+ * ⚠️ **Biased hard towards saying no**, and that is the whole design. Getting
+ * this wrong in one direction costs nothing — you are back to noticing repeats
+ * yourself, which is where this started. Getting it wrong in the other tells
+ * you three people asked something one person asked, and a rulebook entry gets
+ * written for an argument that never happened twice.
+ *
+ * So: at least two shared subject words, and a third of everything either
+ * question is about. It will miss a rephrasing ("what happens if I pass" vs
+ * "can you pass a turn") and it is meant to.
+ */
+export function sameQuestion(a: string, b: string): boolean {
+  const left = questionTerms(a)
+  const right = questionTerms(b)
+  if (left.size === 0 || right.size === 0) return false
+
+  let shared = 0
+  for (const term of left) if (right.has(term)) shared++
+  if (shared < 2) return false
+
+  const union = new Set([...left, ...right]).size
+  return shared / union >= 0.34
+}
+
+/** How many times something like this has been asked and settled before. */
+export function askedBefore(question: string, past: { question: string }[]): number {
+  return past.filter((p) => sameQuestion(question, p.question)).length
+}
+
+/** `2nd`, `3rd`, `4th` — for saying which time this is. */
+export function ordinal(n: number): string {
+  const rem100 = n % 100
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`
+  // 4 through 9 fall off the end of the array and take the default.
+  const suffix = ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'
+  return `${n}${suffix}`
+}
+
+/**
  * Split the open list into the two piles that want different things.
  *
  * `undecided` needs thirty seconds of judgement. `todo` has been judged and is
@@ -138,6 +216,26 @@ export async function openRulings(
 ): Promise<RulingRec[]> {
   const rows = await pb.collection(collection).getFullList({
     filter: OPEN_RULINGS_FILTER,
+    sort: '-created',
+  })
+  return rows.map(normalize)
+}
+
+/**
+ * Everything already settled — dismissed or written into the rulebook.
+ *
+ * Read for one reason: so an open question can say it is not the first of its
+ * kind. Dismissing the first time somebody asks something is the CORRECT move
+ * under the triggers in §5 — one person not finding a rule is one person — but
+ * it also puts that question somewhere nothing will ever count it again. This
+ * is what counts it.
+ */
+export async function pastRulings(
+  pb: RulingStore,
+  collection: string,
+): Promise<RulingRec[]> {
+  const rows = await pb.collection(collection).getFullList({
+    filter: 'status != "new"',
     sort: '-created',
   })
   return rows.map(normalize)

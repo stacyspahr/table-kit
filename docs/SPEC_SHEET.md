@@ -1,6 +1,6 @@
 # table-kit — spec sheet
 
-**v0.23.0 · 269 tests · `stacyspahr/table-kit` (public)**
+**v0.24.0 · 279 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
 [`TABLE_KIT_ARCHITECTURE.md`](TABLE_KIT_ARCHITECTURE.md);
@@ -14,7 +14,7 @@ reference you keep open while writing a game.
 | | |
 |---|---|
 | **Owns** | Everything about a game night except how a round is scored |
-| **Consumed as** | `"table-kit": "github:stacyspahr/table-kit#v0.23.0"` — a tag, never a branch |
+| **Consumed as** | `"table-kit": "github:stacyspahr/table-kit#v0.24.0"` — a tag, never a branch |
 | **Built by** | npm running the git dep's `prepare` script (`tsc`), locally and on Vercel |
 | **Shipped as** | Compiled into each app's bundle at build time. Not a service, not a runtime dep |
 | **Backend** | One shared PocketBase, one `appKey` per game, collections prefixed to match |
@@ -416,6 +416,20 @@ edit** has been judged and needs a machine with an editor.
 own words — every scorer's prompt instructs it to SAY when the rulebook doesn't
 settle something. A hint, never a filing decision: it is prose matching, so it
 can miss a phrasing.
+
+`askedBefore(question, past)` tags the rows that are not the first of their kind
+— *"2nd time this has come up"* — counted against `pastRulings`, everything
+already dismissed or written up.
+
+> ⚠️ **This is what makes "wait for two or three" actionable.** Dismissing the
+> first time somebody asks about a rule the sheet already covers is the CORRECT
+> move, and it is also what puts that question somewhere nothing will ever count
+> again. Without the count, the trigger is a rule you can't act on.
+
+`sameQuestion` is word-overlap after stopwords and a crude plural strip: two
+shared subject words AND a third of the union. **Biased hard towards saying no.**
+A missed repeat leaves you where you already were; a false one writes a rulebook
+entry for an argument that never happened twice.
 
 ---
 

@@ -26,11 +26,14 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { groupByNight } from './nights.js'
 import {
   BUCKET_LABEL,
+  askedBefore,
   completeRuling,
   decideRuling,
   dismissRuling,
   looksLikeGap,
   openRulings,
+  ordinal,
+  pastRulings,
   splitRulings,
   type RulingRec,
   type RulingStore,
@@ -49,6 +52,8 @@ export function RulingsList({
   title?: string
 }) {
   const [rulings, setRulings] = useState<RulingRec[]>([])
+  /** Everything already settled, read only to count repeats. */
+  const [past, setPast] = useState<RulingRec[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   /** Ids mid-write, so a double tap at a table can't fire twice. */
@@ -60,6 +65,11 @@ export function RulingsList({
       .then((list) => live && setRulings(list))
       .catch(() => live && setError('Could not load the questions.'))
       .finally(() => live && setLoading(false))
+    // The archive is a nicety on top of the list, so its failure is silent —
+    // no count is a worse screen, a broken one is a useless screen.
+    pastRulings(pb, collection)
+      .then((list) => live && setPast(list))
+      .catch(() => {})
     return () => {
       live = false
     }
@@ -121,6 +131,7 @@ export function RulingsList({
             <Pile
               heading="To look at"
               rulings={undecided}
+              past={past}
               render={(r) => (
                 <>
                   <button
@@ -154,6 +165,7 @@ export function RulingsList({
               heading="Waiting on an edit"
               note="Decided already. Off the list once the rules have caught up."
               rulings={todo}
+              past={past}
               render={(r) => (
                 <>
                   <button
@@ -191,11 +203,14 @@ function Pile({
   heading,
   note,
   rulings,
+  past,
   render,
 }: {
   heading: string
   note?: string
   rulings: RulingRec[]
+  /** Settled questions, for saying which time this one is. */
+  past: RulingRec[]
   render: (r: RulingRec) => ReactNode
 }) {
   const nights = useMemo(() => groupByNight(rulings, new Date()), [rulings])
@@ -215,7 +230,7 @@ function Pile({
         <div key={night.key}>
           <p className="tk-ruling-night">{night.label}</p>
           {night.items.map((r) => (
-            <Ruling key={r.id} ruling={r} actions={render(r)} />
+            <Ruling key={r.id} ruling={r} past={past} actions={render(r)} />
           ))}
         </div>
       ))}
@@ -223,8 +238,28 @@ function Pile({
   )
 }
 
-function Ruling({ ruling, actions }: { ruling: RulingRec; actions: ReactNode }) {
+function Ruling({
+  ruling,
+  past,
+  actions,
+}: {
+  ruling: RulingRec
+  past: RulingRec[]
+  actions: ReactNode
+}) {
   const [open, setOpen] = useState(false)
+
+  /**
+   * Which time this is, counting everything already settled.
+   *
+   * ⚠️ The reason this exists: the triggers in §5 say a question about
+   * something the rulebook already covers needs two or three before the sheet
+   * is worth touching — and the correct handling of the first one is to dismiss
+   * it, which is exactly what makes the second one impossible to recognise. The
+   * count is the only thing standing between "wait for a repeat" and a rule you
+   * can never act on.
+   */
+  const before = useMemo(() => askedBefore(ruling.question, past), [ruling.question, past])
 
   /**
    * Everything before the final answer. The last assistant turn is already
@@ -244,6 +279,11 @@ function Ruling({ ruling, actions }: { ruling: RulingRec; actions: ReactNode }) 
             the rulebook doesn't settle something, so its own words identify the
             one bucket that needs a new entry — no classifier, no second call. */}
         {looksLikeGap(ruling.answer) && <span className="tk-ruling-tag gap">not in the rulebook</span>}
+        {before > 0 && (
+          <span className="tk-ruling-tag again">
+            {ordinal(before + 1)} time this has come up
+          </span>
+        )}
         {ruling.context && <span className="tk-ruling-tag">{ruling.context}</span>}
         {ruling.bucket && <span className="tk-ruling-tag">{BUCKET_LABEL[ruling.bucket]}</span>}
       </div>
