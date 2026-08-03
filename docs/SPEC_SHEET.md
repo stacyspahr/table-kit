@@ -315,9 +315,10 @@ demoting it.
 
 ### Server — `table-kit/server`
 
-`createGate({ pbUrl, app, guests, games, users?, grants?, role? })` →
-`{ verifyHost, verifyPlayer, verifyAsker }`. Each takes the request and returns
-the record (or `{ role, id, game }` for `verifyAsker`), or `null`.
+`createGate({ pbUrl, app, guests, games, rulings?, users?, grants?, role? })` →
+`{ verifyHost, verifyPlayer, verifyAsker, logRuling }`. Each verifier takes the
+request and returns the record (or `{ role, id, game }` for `verifyAsker`), or
+`null`.
 
 ```js
 const gate = createGate({
@@ -346,13 +347,51 @@ the game is read with the *caller's* own token — so the collection rule that
 says "a guest sees only its own game" does the scoping, and this file never
 restates it.
 
+#### Keeping the question — `gate.logRuling(req, asker, ruling)`
+
+The Ask box used to answer and throw the question away. **The questions people
+ask are the highest-signal thing these apps produce** — a question is a hole in
+the rulebook with a person standing in it — so they are kept, and a recurring
+one is the strongest evidence there is that a rule is missing. Full design in
+`beat-the-heat/docs/RULINGS_SPEC.md`; this is phase A of it.
+
+```js
+const asker = await gate.verifyAsker(req)
+const ruling = await askRuling(messages)
+await gate.logRuling(req, asker, { question, thread, answer, context: goal })
+```
+
+It writes `<prefix>_rulings`, derived from the GUEST collection —
+`heat_guests → heat_rulings`, `f7_guests → f7_rulings` — so a new app configures
+nothing. Override with `rulings:` if one ever breaks convention.
+
+> ⚠️ **Derived from `guests`, not from `app`.** Flip 7's slug is `flip7` while
+> its collections are `f7_*`, so `${app}_rulings` would post to a collection that
+> does not exist — silently, since this swallows failures, and for exactly one
+> app.
+
+> ⚠️ **Capture `question` BEFORE the endpoint splices table context onto the last
+> user turn**, or every stored question carries a `[This table is playing: …]`
+> prefix nobody typed. The context belongs in `context`, which is the only field
+> here whose meaning is per-game.
+
+> ⚠️ **It never throws and the caller ignores the result.** A lost question is a
+> shame; a lost *ruling* is somebody standing over a hand mid-argument. The
+> second is worse, so nothing about logging is allowed to reach the answer.
+
+Written with the asker's own token, so no privileged credential sits in a Vercel
+project. The trade that buys: the create rule must admit guests, so somebody at
+the table could POST a row this endpoint never saw. Reads are host-only, the
+stakes are a family game night, and the alternative is a per-app hook route —
+the one thing this design exists to avoid.
+
 ---
 
 ## What stays in the game
 
 | The kit | The game |
 |---|---|
-| Seats, joining, sync, resilience, leaderboard mechanics, awards engine, share-card renderer, the rules **screen**, who may ask the adviser, PWA chrome | Entry UI, scoring functions, sort direction, end conditions, award **definitions**, the **rulebook**, the share card's words, theme |
+| Seats, joining, sync, resilience, leaderboard mechanics, awards engine, share-card renderer, the rules **screen**, who may ask the adviser, the ruling **record**, PWA chrome | Entry UI, scoring functions, sort direction, end conditions, award **definitions**, the **rulebook**, what `context` means, the share card's words, theme |
 
 The test for a new feature: would a second, unrelated game want it unchanged? If
 it needs `if (game === 'heat')` anywhere, it is not kit code.
