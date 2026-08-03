@@ -7,6 +7,18 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.20.3
+
+- Fixed: a screen running in a browser TAB now clears the browser's own bottom
+  chrome. `.screen` and `.qr-screen` take extra bottom padding under
+  `@media (display-mode: browser)`, tunable as `--tk-screen-pad-browser`.
+- Why it matters: the host installs, but every GUEST plays in a tab, and at a
+  real table the hand-in button sat under Safari's address bar — you had to
+  scroll the page to reach the one control the round was waiting on. `svh`
+  sizes a screen that FITS and cannot help here: an entry screen scrolls, and
+  iOS re-expands the toolbar over the end of a scrolled page.
+- An installed app is untouched — no dead space for chrome it doesn't have.
+
 ## v0.20.2
 
 - Fixed: `loadState(gameId, client?)` now takes the client to read with, and

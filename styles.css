@@ -104,6 +104,10 @@
   --tk-screen-pad-top: 1rem;
   --tk-screen-pad-x: 1rem;
   --tk-screen-pad-bottom: 1.5rem;
+  /* Extra room under a screen that is running in a TAB. See the note by the
+     display-mode rule below — this is the height of the browser's own bottom
+     chrome, which no viewport unit will hand back. */
+  --tk-screen-pad-browser: 3.5rem;
   --tk-gap: 1rem;
 
   --tk-qr-surface: #ffffff;
@@ -172,6 +176,7 @@
 .screen.center {
   justify-content: center;
 }
+
 
 /* ── the brand lockup ────────────────────────────────────────────────────
  *
@@ -693,4 +698,32 @@ select:focus {
   align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+/* ── the same screen, in a tab ────────────────────────────────────────────
+ *
+ * The host installs; every GUEST plays in a browser tab, which is a different
+ * shape and was never allowed for. Found at a real table: the hand-in button
+ * sat under Safari's address bar, and you had to scroll the page to get at the
+ * one control the game was waiting on.
+ *
+ * `svh` above is not the fix for this and cannot be. It sizes a screen that
+ * FITS, and correctly keeps a bottom button clear of the chrome when it does.
+ * But an entry screen is taller than the viewport, so it scrolls — and at the
+ * end of a scroll iOS re-expands the toolbar OVER the last stretch of the page,
+ * which is precisely where a primary button belongs. No viewport unit gives
+ * that space back; only padding does.
+ *
+ * `display-mode: browser` is the honest test for it — not a user agent sniff,
+ * and it means an installed app is untouched rather than carrying dead space
+ * for chrome it doesn't have.
+ */
+@media (display-mode: browser) {
+  .screen,
+  .qr-screen {
+    padding-bottom: calc(
+      env(safe-area-inset-bottom) + var(--tk-screen-pad-bottom) +
+        var(--tk-screen-pad-browser)
+    );
+  }
 }
