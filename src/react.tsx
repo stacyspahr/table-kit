@@ -976,3 +976,14 @@ export function CountdownRing({
     </svg>
   )
 }
+
+/**
+ * The rules sheet lives in its own file — it is a screenful of markup with no
+ * dependency on anything else here — and is re-exported so every consumer
+ * still imports one React entry point.
+ */
+export {
+  RulesSheet,
+  type RuleEntry,
+  type RuleSection,
+} from './rules.js'

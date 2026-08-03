@@ -7,6 +7,37 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.21.0
+
+The rules sheet becomes the kit's, and so does the gate in front of the adviser.
+Both came out of Beat the Heat's first real game night; all three scorers had
+their own near-identical copy of each.
+
+- Added: `RulesSheet` in `table-kit/react`. The offline rulebook, the search
+  box and the ask thread, with the rulebook and the voice arriving as props —
+  `sections`, `adviser`, `askIntro`, `askExample`, `askContext`. A game owns
+  its rules and what it calls its adviser; nothing else about the screen is
+  the game's.
+- Two fixes come with it, both off the table. The header is STICKY, so leaving
+  a long rulebook no longer costs a scroll back to the top. And the two halves
+  are TABS rather than stacked, so reaching the adviser is one tap instead of
+  scrolling the whole rulebook past — while the rulebook stays what opens,
+  because a first-timer needs the lesson and not a question box.
+- Added: `createGate` in a new `table-kit/server` entry — plain `fetch`, no
+  DOM, no SDK, importable from a Vercel function. `verifyHost`, `verifyPlayer`
+  and `verifyAsker` against any app's own collections.
+- Why `verifyPlayer` matters: the adviser was host-only everywhere, which made
+  the host a bottleneck during exactly the argument the adviser exists for. A
+  guest credential is bound to one game and PocketBase will vouch for it, so
+  "is this phone at a game still being played" is answerable — and it is the
+  right question. ⚠️ The active-game check is the whole gate for a player: a
+  credential from a finished night still validates.
+- Added: `.sheet-top`, `.sheet-head`, `.tabs`, `.tab` and a `--tk-page` token
+  (the page's own ground, which the sticky header needs behind it).
+- ⚠️ `.sheet-head` no longer carries the sticky behavior — `.sheet-top` wraps
+  it. An app with its own `.sheet-head` rule keeps it for voice; delete any
+  position/margin from it.
+
 ## v0.20.3
 
 - Fixed: a screen running in a browser TAB now clears the browser's own bottom
