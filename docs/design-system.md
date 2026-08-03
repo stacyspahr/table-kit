@@ -224,11 +224,21 @@ proxy entry on the row that has nothing to do with proxying.
   was the only thing the row tap did that the button did not, and an unmarked
   tap target is the wrong home for it.
 
-Beat the Heat follows this. **Play Nine does not yet** — its board has no
-chevrons at all and still explains itself in fine print under the list
-(*"Tap any row to enter for that seat"*), which is the exact construction the
-mark replaced. It should take both halves at once: chevrons on other seats,
-and its own-row tap folded into the button.
+Both scorers follow this. Play Nine took it in two goes — chevrons and the end
+of its fine-print sentence first, then its own row going plain a commit later —
+which is worth knowing because the halves are separable and the first one alone
+is the state that reads worst: every row marked, including the one the mark
+does not describe.
+
+**Flip 7 has neither half yet**, and it is the app the rule will fit least
+comfortably — check what its board actually does before assuming this drops in.
+
+The gutter is the part that bites. A list mixing tappable rows with plain ones
+has to give the plain ones the chevron's width back, empty, or the column on
+the right stops lining up — and that column is the one people read from across
+a table. Both apps carry that rule in their own stylesheet as a declared
+override, identical in both, waiting on the next kit release to come home
+beside `.row.tappable::after`.
 
 ## Order of work
 
