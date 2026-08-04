@@ -34,9 +34,17 @@
 
 import { useState } from 'react'
 
-/** Just enough of PocketBase to file one. */
+/**
+ * Just enough of PocketBase to file one.
+ *
+ * ⚠️ The auth record is typed as an open bag rather than as `{ email?: string }`.
+ * The narrow version reads better and does not compile: PocketBase's own
+ * `AuthRecord` is an index-signature type, and TypeScript's weak-type check
+ * rejects assigning it to an all-optional interface it shares no declared
+ * property with. This is the shape that accepts the real client.
+ */
 export interface NoteStore {
-  authStore: { record?: { email?: string } | null }
+  authStore: { record?: Record<string, any> | null }
   collection(name: string): {
     create(data: Record<string, unknown>): Promise<any>
   }
