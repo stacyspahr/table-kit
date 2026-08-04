@@ -716,6 +716,13 @@ select:focus {
   border-bottom: none;
 }
 
+/* The lobby's name box is a plain span rather than a flex row, so the mark
+   beside a name needs its own gap. Every other place it lands is inside a flex
+   `.row-main` that already spaces it. */
+.tk-lobby-seats .tk-no-phone {
+  margin-left: 6px;
+}
+
 /* ── The auto-submit ring ────────────────────────────────────────────────
    Sits inside the button it is counting down for, so the thing about to
    happen and the clock on it are never in two different places. It starts at

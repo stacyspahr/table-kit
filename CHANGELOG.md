@@ -7,6 +7,22 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.27.0
+
+- Changed: `LobbySeats` marks a phoneless seat with `NoPhone` instead of the
+  `no phone` text pill. The lobbies kept the words on the grounds that they had
+  the room — which lasted exactly one screenshot. The room was never the
+  argument: a fact this load-bearing should not change shape between the screen
+  where you meet it and the screen where you act on it, and the lobby is where
+  you meet it.
+- The mark sits beside the NAME rather than out at the right edge where the
+  pill was. A lobby row has nothing on its right, so a pill there floated alone
+  in open space with nothing to anchor it.
+- ⚠️ An app with its own lobby list — all three have one on the host screen —
+  has its own copy of the pill to swap. `.tk-lobby-seats .tk-no-phone` carries
+  the gap the kit's own list needs; a list whose `.row-main` is already a flex
+  box spaces it without help.
+
 ## v0.26.1
 
 `NoPhone` redrawn, after looking at it on a phone rather than at the code.

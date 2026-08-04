@@ -896,14 +896,15 @@ export function useLobby({
  * for — and a fact that important cannot look like a different fact depending
  * on which scorer is open.
  *
- * A glyph rather than the words, for the one place it has to go: ON the
- * leaderboard row, beside a name, a tick, a total and sometimes a bar. There is
- * no room there for two words, and this reads across a table faster anyway.
- * The lobbies keep the text pill — they have the space, and a lobby is read
- * once rather than glanced at every round.
+ * A glyph rather than the words. It went onto the leaderboard first, where
+ * there was no room for two words beside a name, a tick, a total and a bar —
+ * and the lobbies kept the text pill on the grounds that they had the space.
+ * That lasted one screenshot. The space was never the argument: a fact that
+ * important should not change shape between the screen where you meet it and
+ * the screen where you act on it, and the lobby is where you meet it.
  *
- * `currentColor` and `1em`, so it takes the color and size of whatever it is
- * set beside without an app having to style it.
+ * `currentColor`, so it takes the color of whatever it is set beside without an
+ * app having to style it.
  */
 export function NoPhone({ title = 'no phone' }: { title?: string }) {
   return (
@@ -945,8 +946,14 @@ export function LobbySeats({ players }: { players: PlayerRec[] }) {
     <ul className="list tk-lobby-seats">
       {players.map((p) => (
         <li key={p.id}>
-          <span className="row-main">{p.display_name}</span>
-          {!p.device_id && <span className="pill">no phone</span>}
+          {/* Beside the NAME, not out at the right edge where the text pill
+              used to sit. The mark belongs to the person: a lobby row has
+              nothing on its right-hand side, so a pill there floated alone in
+              open space with nothing to anchor it. */}
+          <span className="row-main">
+            {p.display_name}
+            {!p.device_id && <NoPhone />}
+          </span>
         </li>
       ))}
     </ul>

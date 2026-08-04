@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { Confirm, NoPhone, QrPanel, useAutoSubmit } from './react.js'
+import { Confirm, LobbySeats, NoPhone, QrPanel, useAutoSubmit } from './react.js'
 
 const TOKEN = 'a'.repeat(32)
 
@@ -529,5 +529,39 @@ describe('the no-phone mark', () => {
   it('takes the caller wording, for a game that calls it something else', () => {
     render(<NoPhone title="playing off the table" />)
     expect(screen.getByLabelText('playing off the table')).toBeTruthy()
+  })
+})
+
+describe('the lobby seat list', () => {
+  const seat = (id: string, display_name: string, device_id: string) =>
+    ({
+      id,
+      game: 'g1',
+      display_name,
+      seat_order: 0,
+      device_id,
+      guest: '',
+      roster_entry: '',
+      joined_round: 1,
+    }) as any
+
+  it('marks only the seats with no phone, and marks them beside the name', () => {
+    const { container } = render(
+      <LobbySeats players={[seat('p1', 'Ada', 'd1'), seat('p2', 'Nana', '')]} />,
+    )
+
+    const marks = container.querySelectorAll('.tk-no-phone')
+    expect(marks).toHaveLength(1)
+    // Inside the name box rather than trailing the row — a lobby row has
+    // nothing on its right, so a mark out there floats with nothing to anchor.
+    // `firstChild` is the name text node, because the SVG's own <title> counts
+    // toward textContent and would make a whole-string match meaningless.
+    const box = marks[0]!.closest('.row-main')
+    expect(box?.firstChild?.textContent).toBe('Nana')
+  })
+
+  it('says it in words to a screen reader, which cannot see a glyph', () => {
+    render(<LobbySeats players={[seat('p2', 'Nana', '')]} />)
+    expect(screen.getByLabelText('no phone')).toBeTruthy()
   })
 })
