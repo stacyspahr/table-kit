@@ -83,6 +83,83 @@ the app knew something and never told the table.
   everybody who didn't cross, and somebody wins it on a night when the nearest
   player was half a game away.
 
+<!--
+  v0.22.0 – v0.24.0 were tagged without entries and are BACKFILLED, written on
+  2026-08-03 from the tags, the diffs and the commit messages rather than at the
+  time. They are the rulings loop, built in three phases across two days: keep
+  the question, read the questions, count the repeats. Treat the reasoning as
+  accurate — it is quoted from the commits — and the framing as reconstructed.
+-->
+
+## v0.24.0
+
+A question can say it is not the first of its kind.
+
+- Added: `askedBefore`, `sameQuestion`, `questionTerms`, `ordinal` and
+  `pastRulings` in `table-kit`. A question arriving on the triage screen now
+  carries how many times it has been asked before.
+- Why it was needed: the guidance says a question about something the rulebook
+  already covers wants two or three askings before the sheet is worth touching
+  — and the correct handling of the first one is to dismiss it, which is exactly
+  what makes the second one unrecognisable. "Wait for a repeat" was a rule
+  nobody could act on.
+- How it matches: word overlap after stopwords and a crude plural strip, biased
+  hard toward saying no — two shared subject words AND a third of the union. It
+  will miss a rephrasing, and that is the trade taken on purpose. A missed
+  repeat leaves you where you already were; a false one writes a rulebook entry
+  for an argument that never happened twice.
+- ⚠️ The archive read fails SILENTLY. No count is a worse screen; a broken one
+  is a useless screen.
+- Added: `.tk-ruling-tag.again`.
+
+## v0.23.0
+
+Somewhere to read the questions, and decide what they mean. Phase B — v0.22.0
+kept every question, this is the screen where somebody reads them.
+
+- Added: `RulingsList` in `table-kit/react`, plus `openRulings`,
+  `decideRuling`, `completeRuling`, `dismissRuling`, `splitRulings`,
+  `looksLikeGap`, `rulingsCollection`, `OPEN_RULINGS_FILTER` and
+  `BUCKET_LABEL` in `table-kit`.
+- It is the whole feature for as long as the volume stays where it is, and it
+  works with no mail at all — the app gets opened before a game night anyway.
+- Three buttons, not four. Two of the spec's buckets both end in editing text
+  that already exists, so they are one choice. The one worth understanding is
+  "fix the sheet": if people keep asking something the rulebook already answers
+  plainly, the rule is not the problem, the sheet buried it, and a fourth entry
+  saying the same thing makes the sheet longer and no clearer.
+- ⚠️ Deciding is not doing. A triaged ruling stays OPEN — `bucket` set,
+  `status` still new — because the rulebook is a file in a repo and the edit
+  happens later on a machine with an editor. Clearing it at the moment of
+  decision would file the decision and lose the job it created. Hence two
+  piles: one wants thirty seconds of judgement, the other wants a laptop.
+- `looksLikeGap` reads the ADVISER's own words rather than classifying
+  anything. Every scorer's prompt already tells it to say when the rulebook
+  doesn't settle something, so those rows identify themselves — no classifier,
+  no second model call, nothing added to the wait at the table. A hint and
+  never a filing decision: it is prose matching and can miss a phrasing.
+- Added: the `.tk-ruling-*` block.
+
+## v0.22.0
+
+The kit keeps the question, not just the ruling. Phase A.
+
+- Added: `logRuling` on the gate from `table-kit/server`, and the
+  `RulingRecord` shape. Each question the adviser is asked is filed against the
+  night it came from.
+- Why: the Ask box answered and threw the question away. A question is a hole
+  in the rulebook with a person standing in it, and a question asked three
+  times on three nights is the strongest evidence there is that a rule is
+  missing.
+- ⚠️ The collection is derived from the GUEST prefix, not the app slug. Flip 7
+  is `flip7` while its collections are `f7_*`, so the obvious derivation would
+  post into thin air for exactly one app — and silently, because logging is not
+  allowed to fail loudly. A lost question is a shame; a lost ruling is somebody
+  standing over a hand mid-argument.
+- Docs: `TABLE_KIT_ARCHITECTURE.md` moved in from beat-the-heat — it stopped
+  being that repo's document once three games shared it — and the spec sheet
+  caught up with the server entry point and the rules sheet.
+
 ## v0.21.0
 
 The rules sheet becomes the kit's, and so does the gate in front of the adviser.
