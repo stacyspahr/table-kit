@@ -433,8 +433,15 @@
  */
 .tk-no-phone {
   flex: none;
-  vertical-align: -0.12em;
-  opacity: 0.75;
+  /* A shade LARGER than the text it sits beside, and barely dimmed. It is a
+     glyph among letterforms, so matching the cap height leaves it reading as a
+     faint smudge rather than a mark — and this is the one on the row that has
+     to be legible across a table, because it is the one that asks somebody to
+     volunteer. */
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+  opacity: 0.85;
 }
 
 .row.tappable::after {

@@ -921,10 +921,13 @@ export function NoPhone({ title = 'no phone' }: { title?: string }) {
       aria-label={title}
     >
       <title>{title}</title>
-      {/* The handset, drawn open at the corners the slash passes through — a
-          continuous outline with a line laid over it reads as a smudge at this
-          size, where a broken one reads as struck through. */}
-      <path d="M8 2h8a2 2 0 0 1 2 2v4M18 16v4a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-9M6 7V4a2 2 0 0 1 2-2" />
+      {/* A plain handset with a line through it, and plain is the point. An
+          earlier cut broke the outline at the corners the slash crosses, on the
+          theory that it would read as struck through rather than smudged. At
+          17px it read as neither — just a damaged rectangle. The slash runs
+          past the body at both ends, which is what makes it a slash and not a
+          crack. */}
+      <rect x="6" y="2" width="12" height="20" rx="2.5" />
       <line x1="3" y1="3" x2="21" y2="21" />
     </svg>
   )

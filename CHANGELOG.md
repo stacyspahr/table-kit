@@ -7,6 +7,20 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.26.1
+
+`NoPhone` redrawn, after looking at it on a phone rather than at the code.
+
+- The glyph was a handset outline deliberately BROKEN at the corners the slash
+  crosses — the theory being that it would read as struck through rather than
+  smudged. At 17px it read as neither: a damaged rectangle. Now a plain rounded
+  handset with a line laid across it, running past the body at both ends so it
+  reads as a slash and not a crack.
+- Sized at `1.15em` and barely dimmed, rather than `1em` at 0.75. It is a glyph
+  among letterforms, so matching the cap height left it looking like a smudge —
+  and this is the mark on the row that has to carry across a table, because it
+  is the one asking somebody to volunteer.
+
 ## v0.26.0
 
 - Added: `NoPhone` in `table-kit/react`. The mark for a seat playing without one
