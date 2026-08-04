@@ -156,11 +156,27 @@ export function ScorePad<G extends GameRec, S extends SubmissionRec>({
       <ul className="list">
         {rows.map((r) => {
           const mine = r.player.id === meId
+          /*
+           * ⚠️ The running total goes UNDER the name, not beside the delta, and
+           * that is a width decision made on a real phone rather than a taste
+           * one. Name, delta, total and a tappable chevron is four things on a
+           * 375px row, and the first delta that was a WORD rather than a number
+           * — "untouched" — pushed the chevron onto a line of its own with
+           * nothing beside it. Squeezing the name to fix it is the one move the
+           * house rules forbid.
+           *
+           * Stacked, it also says the right thing. The delta is the answer to
+           * the question the pad gets opened for, so it is the big number on
+           * the right; the total is context, so it sits quiet under the name
+           * exactly where a row note belongs.
+           */
           const body = (
             <>
-              <span className="row-main">{r.player.display_name}</span>
+              <span className="row-main">
+                {r.player.display_name}
+                <span className="row-note tk-pad-total">{r.after} so far</span>
+              </span>
               <span className="tk-pad-delta">{formatDelta(r.delta)}</span>
-              <span className="tk-pad-total">{r.after}</span>
             </>
           )
           return (

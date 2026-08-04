@@ -1003,24 +1003,36 @@ select:focus {
   opacity: 0.25;
 }
 
-/* What the round did, and where it left you. The delta is the answer to the
- * question the pad exists for, so it is the one that gets the accent; the
- * running total is context and stays quiet. */
+/* A pad row carries a name, a delta and a chevron across, with the running
+ * total stacked under the name. It must NOT fall back on the shared row's wrap:
+ * the wrap exists so a long name never gets truncated, but here it drops the
+ * tappable chevron onto a line of its own the moment a delta is a word rather
+ * than a number. Held to one line, the name gives way instead — and it gives
+ * way by wrapping its own text, never by being cut. */
+.tk-pad .row {
+  flex-wrap: nowrap;
+}
+
+.tk-pad .row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Where the round left you. Under the name, quiet, because the delta is the
+ * answer and this is the context for it. */
+.tk-pad-total {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+/* What the round did — the answer to the question the pad gets opened for, so
+ * it is the one thing on the row wearing the accent. */
 .tk-pad-delta {
   flex: 0 0 auto;
-  min-width: 3.2rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--tk-accent);
-}
-
-.tk-pad-total {
-  flex: 0 0 auto;
-  min-width: 2.8rem;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--tk-muted);
 }
 
 /* ── the note box ────────────────────────────────────────────────────────

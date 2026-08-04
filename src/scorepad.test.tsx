@@ -100,9 +100,9 @@ describe('ScorePad', () => {
     render(<ScorePad state={state(rounds, subs)} winner="lowest" onClose={() => {}} />)
     // Round 2: ann took 3 to sit on 8, bo took 20 to sit on 32.
     expect(screen.getByText('+3')).toBeTruthy()
-    expect(screen.getByText('8')).toBeTruthy()
+    expect(screen.getByText('8 so far')).toBeTruthy()
     expect(screen.getByText('+20')).toBeTruthy()
-    expect(screen.getByText('32')).toBeTruthy()
+    expect(screen.getByText('32 so far')).toBeTruthy()
   })
 
   it('pages back to round 1 and stops', () => {
