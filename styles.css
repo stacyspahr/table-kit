@@ -425,6 +425,18 @@
  * Muted rather than accented: this is an affordance, not a call to action. The
  * row it belongs to is already saying whatever it has to say.
  */
+/*
+ * The no-phone glyph. Sized and coloured by whatever it sits beside, so an app
+ * places it and says nothing else about it — see `NoPhone` in react.tsx.
+ * `flex: none` because it lands inside `.row-main`, which is a flex box in at
+ * least one app and would otherwise squash it.
+ */
+.tk-no-phone {
+  flex: none;
+  vertical-align: -0.12em;
+  opacity: 0.75;
+}
+
 .row.tappable::after {
   content: '›';
   flex: 0 0 auto;
@@ -471,9 +483,13 @@ button.row {
   cursor: pointer;
 }
 
+/* ⚠️ background-COLOR, not the shorthand. A row may carry a background-IMAGE —
+   Flip 7 draws its distance-to-the-target bar as a gradient on the row itself —
+   and the shorthand resets it, so pressing a row made the bar blink out for as
+   long as the finger was down. */
 button.row:active:not(:disabled) {
   border-color: var(--tk-accent);
-  background: var(--tk-surface);
+  background-color: var(--tk-surface);
 }
 
 button.row:disabled {

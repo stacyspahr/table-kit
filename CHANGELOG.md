@@ -7,6 +7,23 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.26.0
+
+- Added: `NoPhone` in `table-kit/react`. The mark for a seat playing without one
+  — inline SVG, `currentColor`, `1em`, labelled for a screen reader. It exists
+  because three apps were about to say the same thing three different ways, and
+  "no phone" is the difference between a seat that fills itself in and one
+  somebody has to volunteer for. Too important to look different per scorer.
+- A glyph rather than the words, for the one place it has to go: ON a
+  leaderboard row, beside a name, a tick, a total and sometimes a bar. The
+  lobbies keep the text pill — they have the room, and a lobby is read once
+  rather than glanced at every round.
+- Added: `.tk-no-phone` to style it.
+- Fixed: `button.row:active` set `background` — the SHORTHAND — which resets
+  `background-image`. Flip 7 draws its distance-to-target bar as a gradient on
+  the row itself, so the first time one of those rows became a button the bar
+  blinked out for as long as a finger was on it. Now `background-color`.
+
 ## v0.25.0
 
 Three things a second real game night asked for. All three were the same shape:

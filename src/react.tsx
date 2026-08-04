@@ -887,6 +887,50 @@ export function useLobby({
 }
 
 /**
+ * A seat with no phone of its own.
+ *
+ * ── Why the kit owns the MARK ────────────────────────────────────────────
+ * Because three apps were about to say the same thing three ways. "No phone"
+ * is one of the load-bearing facts at a card table — it is the difference
+ * between a seat that will fill itself in and one somebody has to volunteer
+ * for — and a fact that important cannot look like a different fact depending
+ * on which scorer is open.
+ *
+ * A glyph rather than the words, for the one place it has to go: ON the
+ * leaderboard row, beside a name, a tick, a total and sometimes a bar. There is
+ * no room there for two words, and this reads across a table faster anyway.
+ * The lobbies keep the text pill — they have the space, and a lobby is read
+ * once rather than glanced at every round.
+ *
+ * `currentColor` and `1em`, so it takes the color and size of whatever it is
+ * set beside without an app having to style it.
+ */
+export function NoPhone({ title = 'no phone' }: { title?: string }) {
+  return (
+    <svg
+      className="tk-no-phone"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label={title}
+    >
+      <title>{title}</title>
+      {/* The handset, drawn open at the corners the slash passes through — a
+          continuous outline with a line laid over it reads as a smudge at this
+          size, where a broken one reads as struck through. */}
+      <path d="M8 2h8a2 2 0 0 1 2 2v4M18 16v4a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-9M6 7V4a2 2 0 0 1 2-2" />
+      <line x1="3" y1="3" x2="21" y2="21" />
+    </svg>
+  )
+}
+
+/**
  * The seats, as they arrive.
  *
  * Names only. What the lobby SAYS around this list — what the game is called,

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { Confirm, QrPanel, useAutoSubmit } from './react.js'
+import { Confirm, NoPhone, QrPanel, useAutoSubmit } from './react.js'
 
 const TOKEN = 'a'.repeat(32)
 
@@ -517,5 +517,17 @@ describe('the confirm card', () => {
     )
     expect(screen.getByText('Sure?')).toBeTruthy()
     expect(container.querySelector('.fine')).toBeNull()
+  })
+})
+
+describe('the no-phone mark', () => {
+  it('says what it means to a screen reader, not just to an eye', () => {
+    render(<NoPhone />)
+    expect(screen.getByLabelText('no phone')).toBeTruthy()
+  })
+
+  it('takes the caller wording, for a game that calls it something else', () => {
+    render(<NoPhone title="playing off the table" />)
+    expect(screen.getByLabelText('playing off the table')).toBeTruthy()
   })
 })
