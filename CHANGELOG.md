@@ -7,6 +7,29 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.28.0
+
+- New: `ScorePad` — every banked round, for anybody at the table who wants one
+  back. Pages one round at a time rather than drawing a grid, because a
+  rounds-by-players grid does not fit a phone without squeezing a name, and the
+  question it gets opened for ("what happened to Michelle last round?") is about
+  one round anyway. Rows read exactly like the board.
+- `ScorePad` shows **closed rounds only**, always. The round in play stays
+  hidden the way every game in the suite hides it — a pad that leaked it would
+  be a hole in the reveal reachable from every phone at the table.
+- Correcting a round is now expressed rather than assumed: pass `fixable` with
+  the one round you are willing to reopen and only that round's rows become
+  tappable. Pass nothing and the pad is entirely read-only, which is what a
+  finished game wants. Beat the Heat's old "fix a score" panel was this with the
+  paging taken out, and has been replaced by it.
+- New: `NoteBox`, `isOwner` and `saveNote` — an owner-only box for the snag you
+  notice mid-game. Deliberately a plain `<textarea>`: the phone keyboard's own
+  mic key is the dictation feature, so there is no speech API, no permission
+  prompt and nothing to break offline.
+- `isOwner` decides whether the button is DRAWN and nothing more. The
+  `table_notes` collection names the same address server-side, which is what
+  actually keeps the inbox private — see the platform backend.
+
 ## v0.27.0
 
 - Changed: `LobbySeats` marks a phoneless seat with `NoPhone` instead of the

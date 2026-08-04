@@ -1102,3 +1102,14 @@ export {
   type RuleEntry,
   type RuleSection,
 } from './rules.js'
+
+export { ScorePad, closedRounds, signed } from './scorepad.js'
+
+export {
+  NoteBox,
+  NOTES_COLLECTION,
+  isOwner,
+  saveNote,
+  type NoteStamp,
+  type NoteStore,
+} from './notes.js'

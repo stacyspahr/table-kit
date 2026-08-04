@@ -960,3 +960,98 @@ select:focus {
   color: inherit;
   border-color: var(--tk-ink, currentColor);
 }
+
+/* ── the score pad ───────────────────────────────────────────────────────
+ *
+ * One banked round at a time, with an arrow at each end. Every value comes
+ * from the token contract, so the pad arrives wearing whichever game imported
+ * it without any of them owning a copy of these rules.
+ */
+.tk-pad-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.6rem;
+}
+
+/* The round number owns the middle and stays put as you page. A heading that
+ * slides left and right because "Round 9" is wider than "Round 10" makes the
+ * arrows feel like they moved, so it centers in the space that is left. */
+.tk-pad-head h2 {
+  flex: 1 1 auto;
+  margin: 0;
+  text-align: center;
+}
+
+/* Square, and big enough for a thumb at the range of a card table. `.btn`
+ * stretches by default; these must not. */
+.tk-pad-step {
+  flex: 0 0 auto;
+  width: var(--tk-tap-min);
+  min-width: var(--tk-tap-min);
+  height: var(--tk-tap-min);
+  padding: 0;
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* Spent at the end of the list rather than hidden: an arrow that vanishes at
+ * round 1 moves the heading, and a control that disappears is a control people
+ * stop trusting. */
+.tk-pad-step:disabled {
+  opacity: 0.25;
+}
+
+/* What the round did, and where it left you. The delta is the answer to the
+ * question the pad exists for, so it is the one that gets the accent; the
+ * running total is context and stays quiet. */
+.tk-pad-delta {
+  flex: 0 0 auto;
+  min-width: 3.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--tk-accent);
+}
+
+.tk-pad-total {
+  flex: 0 0 auto;
+  min-width: 2.8rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--tk-muted);
+}
+
+/* ── the note box ────────────────────────────────────────────────────────
+ *
+ * A plain textarea, on purpose. The mic key on the phone's own keyboard is the
+ * dictation feature; see the header of src/notes.tsx for why there is no
+ * microphone button of ours next to it.
+ */
+.tk-note-body {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  /* Never below 16px: iOS zooms the whole page in on a focused field smaller
+     than that, and a game screen that jumps when you go to type is the reason
+     nobody types. */
+  font-size: max(1rem, 16px);
+  line-height: 1.4;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--tk-field-radius);
+  border: var(--tk-field-border-w) solid var(--tk-field-border);
+  background: var(--tk-field-bg);
+  color: var(--tk-field-ink);
+  /* Down only. Sideways drag can push the card wider than the screen. */
+  resize: vertical;
+}
+
+.tk-note-body:focus {
+  outline: none;
+  border-color: var(--tk-field-focus);
+}
+
+.tk-note-ok {
+  color: var(--tk-accent);
+}
