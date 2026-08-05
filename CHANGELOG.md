@@ -7,6 +7,41 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.29.0
+
+- New: `TakeSeat` — sitting down without leaving the screen you are on. The
+  host made a game, watched the lobby fill, and then "take a seat" pushed the
+  join URL and swapped the whole app into the guest view: the lobby vanished, a
+  screen asked who you were, and you arrived at a SECOND lobby with the same
+  seat list and the same start button. Nothing was starting the game — the seat
+  claim and `startGame` were always separate calls — but a transition that
+  erases the screen you were waiting on erases the sense of still waiting, and
+  what is left reads as a commit. Now the name lands in the list already on
+  screen and the start button already on screen comes alive.
+- `TakeSeat` never offers a seat another phone is holding. Taking over an
+  occupied seat is the recovery path and it needs the confirm that explains
+  what is about to happen; a confirm folded into a panel inside a lobby is
+  where a mis-tap costs somebody their score. The phone that needs it lands on
+  `SeatClaim` anyway — it has no seat, so it scans the code like everyone else.
+- `onOpen` runs before a single name is drawn, and a failure there shuts the
+  panel rather than listing names that cannot be tapped. It is where an app
+  does whatever handshake taking a seat requires of it — on a host's phone that
+  means joining its own game, because a seat cannot be claimed with a host
+  credential.
+- New: `TableBoard` and `WaitingOn` — the table mid-game for a phone that is
+  not entering a card. Nothing in the kit ever required the host to play, but
+  every screen that SHOWED the game needed a seat, so a host who sat one out
+  got a list of names and no way to see the score. Keeping score for a table of
+  people playing without phones was the one arrangement the apps could not do.
+- `TableBoard` takes a `format` function rather than rendering numbers itself.
+  A total is `+4` in Play Nine, a count in Flip 7, a pepper tally in Beat the
+  Heat — the kit orders the board and marks who is still owing, and the game
+  says what a number looks like.
+- ⚠️ `TableBoard`'s `done` set is the CALLER's to build, and must come from
+  final submissions only. `submittedThisRound` already drops drafts. A board
+  that ticks a seat off on an autosave tells the table it is waiting for nobody
+  while somebody is still holding a card.
+
 ## v0.28.0
 
 - New: `ScorePad` — every banked round, for anybody at the table who wants one

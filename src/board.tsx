@@ -1,0 +1,97 @@
+/**
+ * The table, mid-game, for somebody who is not entering a card.
+ *
+ * ── The problem this exists for ──────────────────────────────────────────
+ * Nothing in the kit ever required the host to play — `lobbyState` counts
+ * seats and not hosts, the round-close button is on every phone, and the
+ * server flips a round to review on its own the moment every owing seat is
+ * final. The resilience contract says it outright: nothing requires the host
+ * mid-game.
+ *
+ * But every screen that SHOWED the game needed a seat. A host who sat one out
+ * got a list of names and a join code, and no way to see the score — so
+ * "sitting this one out" meant "watching nothing," and the sensible thing at a
+ * family table (keep score for four people, don't take a hand) was the one
+ * arrangement the apps could not do.
+ *
+ * This is the read of the table that needs no seat.
+ *
+ * ── Why the numbers are not the kit's ────────────────────────────────────
+ * `format` exists because a total means something different in every game:
+ * `+4` in Play Nine, a plain count in Flip 7, a pepper tally in Beat the Heat.
+ * The kit orders the board and marks who is still owing — both facts about a
+ * game night — and the game says what a number looks like. Take that away and
+ * this component would have to learn what strokes are.
+ */
+
+import type { ReactNode } from 'react'
+import type { Standing } from './state.js'
+import type { PlayerRec } from './state.js'
+
+export function TableBoard({
+  standings,
+  done,
+  format,
+  emptyNote,
+}: {
+  /** From `standings` — already in board order, ties sharing a place. */
+  standings: Standing[]
+  /**
+   * Who has handed this round in. Everyone else gets the open mark.
+   *
+   * ⚠️ Build this from FINAL submissions only. A draft is not an answer, and a
+   * board that ticks a seat off on an autosave tells the table it is waiting
+   * for nobody while somebody is still holding a card.
+   */
+  done: Set<string>
+  /** The game's own rendering of a total. */
+  format: (score: number) => ReactNode
+  /** Shown instead of the board before anybody has a total. */
+  emptyNote?: ReactNode
+}) {
+  if (standings.length === 0) {
+    return emptyNote ? <p className="fine">{emptyNote}</p> : null
+  }
+
+  return (
+    <ul className="list tk-board">
+      {standings.map((row) => (
+        <li key={row.player.id}>
+          <span className="row">
+            {/* The same two marks the play screens use. Not a spinner and not
+                a colour: this gets read across a table by somebody who is not
+                holding the phone. */}
+            <span className="tk-board-tick" aria-hidden="true">
+              {done.has(row.player.id) ? '✓' : '○'}
+            </span>
+            <span className="row-main">{row.player.display_name}</span>
+            <span className="row-note">{format(row.score)}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * The seats still owing a card this round, by name.
+ *
+ * Separate from the board because it answers a different question — the board
+ * says where everyone stands, this says who the table is waiting on — and
+ * because it is the sentence a host reads out loud.
+ */
+export function WaitingOn({
+  players,
+  none,
+}: {
+  players: PlayerRec[]
+  /** What to say when nobody is owing. Omit to render nothing. */
+  none?: ReactNode
+}) {
+  if (players.length === 0) return none ? <p className="fine center-text">{none}</p> : null
+  return (
+    <p className="fine center-text">
+      Waiting on {players.map((p) => p.display_name).join(', ')}.
+    </p>
+  )
+}

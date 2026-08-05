@@ -1,6 +1,6 @@
 # table-kit — spec sheet
 
-**v0.24.0 · 279 tests · `stacyspahr/table-kit` (public)**
+**v0.29.0 · 328 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
 [`TABLE_KIT_ARCHITECTURE.md`](TABLE_KIT_ARCHITECTURE.md);
@@ -282,8 +282,78 @@ because it is baked into the bundle.
 ### React — `table-kit/react`
 
 Screens: `HostLogin`, `NoAccess`, `Pending`, `SeatClaim`, `InviteHost`,
-`LobbySeats`, `QrPanel`, `UpdateBanner`, `RulesSheet`.
-Hooks and parts: `useLobby`, `useAutoSubmit`, `CountdownRing`.
+`LobbySeats`, `QrPanel`, `UpdateBanner`, `RulesSheet`, `RulingsList`,
+`ScorePad`, `NoteBox`, `TakeSeat`, `TableBoard`.
+Hooks and parts: `useLobby`, `useAutoSubmit`, `CountdownRing`, `NoPhone`,
+`WaitingOn`.
+
+#### Sitting down in place — `TakeSeat` (v0.29.0)
+
+A compact seat claim for a screen that is already showing the table. The host
+screen's, specifically: hosting a game and playing in one are different acts,
+so the host's name is not in the lobby list until they sit down.
+
+What was wrong was the way back in. "Take a seat" pushed the join URL and
+swapped the whole app into the guest view — the lobby the host was watching
+disappeared, a screen asked who they were, and they arrived at a **second**
+lobby with the same seat list, the same join code and the same start button.
+
+> ⚠️ **Nothing was ever starting the game on a seat claim.** `claimSeat` and
+> `startGame` are separate calls and always were. But a transition that erases
+> the screen you were waiting on erases the sense of still waiting, and what is
+> left reads as a commit. The bug was the screen change, not the writes.
+
+| Prop | For |
+|---|---|
+| `onOpen` | Run once when the panel opens, **before a name is drawn**. Where an app does whatever handshake taking a seat requires. Async, and allowed to throw — a failure shuts the panel rather than listing names that cannot be tapped |
+| `onClaim`, `onReclaim` | The writes. The kit never picks the client |
+| `label`, `heading` | The game's wording |
+| `className` | The shut button's weight. One primary at a time is the screen's call |
+
+> ⚠️ **A host cannot claim a seat with the host credential.** `claimSeat`
+> writes the caller's auth record into `guest`, which relates to `<app>_guests`
+> — a host user id there lands a seat no phone can ever take back. The host
+> joins their own game through the same token exchange as everyone else, which
+> is what the two separate auth stores exist for. `bootstrapJoin` is that whole
+> handshake in one call and brings the roster back with it, so `onOpen` is one
+> call and sitting down is not a second code path.
+
+> ⚠️ **It never offers a seat another phone is holding.** Taking over an
+> occupied seat is the recovery path and needs the confirm that explains what
+> is about to happen. A confirm folded into a panel inside a lobby is where a
+> mis-tap costs somebody their score — and the phone that needs it lands on
+> `SeatClaim` anyway, because it has no seat and scans the code like everyone
+> else. An UNCLAIMED seat is offered: that is the host picking up a phoneless
+> seat they added themselves a minute ago.
+
+#### Watching without a seat — `TableBoard` / `WaitingOn` (v0.29.0)
+
+The table mid-game for a phone that is not entering a card.
+
+Nothing in the kit ever required the host to play — `lobbyState` counts seats
+and not hosts, the round-close button is on every phone, and the server flips a
+round to `review` on its own. But every screen that **showed** the game needed
+a seat, so a host who sat one out got a list of names and a join code. Keeping
+score for a table of people playing without phones was the one arrangement the
+apps could not do.
+
+`format` is a prop because a total is `+4` in Play Nine, a count in Flip 7 and
+a pepper tally in Beat the Heat. The kit orders the board and marks who is
+still owing; the game says what a number looks like.
+
+> ⚠️ **`done` is the caller's to build, from FINAL submissions only.**
+> `submittedThisRound` already drops drafts. A board that ticks a seat off on
+> an autosave tells the table it is waiting for nobody while somebody is still
+> holding a card.
+
+> ⚠️ **A seatless host still cannot enter for somebody else.** `save` takes
+> `submittedBy`, a relation to a seat, and a host without one has no id to put
+> there. So the all-phoneless table is not solved yet — it needs a decision
+> about that column, not a screen.
+
+Read state for this board with the **host** client: `loadState(gameId, pbHost)`.
+The guest client is the kit's default and a host who never sat down never
+joined, which is exactly the case the board exists for.
 
 `QrPanel({ token, gameName, onClose })`. Full-screen join QR, reachable at any
 point in a game and showable by any joined player, not just the host — routing

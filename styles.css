@@ -723,6 +723,34 @@ select:focus {
   margin-left: 6px;
 }
 
+/* ── The watcher's board ─────────────────────────────────────────────────
+   The table mid-game, for a phone that is not entering a card. Plain rows for
+   the same reason the lobby's are: nothing here does anything when pressed,
+   and the `.row` button look would promise a tap that isn't there.
+
+   The tick column is fixed rather than sized to its glyph, so the names start
+   at the same x whether a seat has handed in or not. A name that shifts left
+   as somebody hands their card in is a board that flickers all round.
+
+   No rule separating the rows, deliberately. Every app in the suite themes
+   `.row` itself — Play Nine draws it as a bordered card — and a divider laid
+   under that gives every row a box AND a line, which reads as two competing
+   ways of saying the same thing. The kit supplies the columns; the game
+   supplies the row. */
+.tk-board .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.tk-board-tick {
+  flex: none;
+  width: 1.1em;
+  text-align: center;
+  opacity: 0.75;
+}
+
 /* ── The auto-submit ring ────────────────────────────────────────────────
    Sits inside the button it is counting down for, so the thing about to
    happen and the clock on it are never in two different places. It starts at

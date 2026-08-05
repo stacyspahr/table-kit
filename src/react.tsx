@@ -1105,6 +1105,10 @@ export {
 
 export { ScorePad, closedRounds, signed } from './scorepad.js'
 
+export { TakeSeat } from './takeseat.js'
+
+export { TableBoard, WaitingOn } from './board.js'
+
 export {
   NoteBox,
   NOTES_COLLECTION,
