@@ -14,7 +14,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { asEndCondition, committedTotals, endReached, goalReached, isFinalRound, owesIn, roundsLeft, roundsPlayed, standings, submissionFor, submittedThisRound, sumScores, tieAtFront, totals, type GameRec, type GameState, type PlayerRec, type RoundRec, type SubmissionRec, type Tally, waitingOn } from './state.js'
+import { asEndCondition, committedTotals, endReached, goalReached, isAnswer, isFinalRound, owesIn, roundsLeft, roundsPlayed, standings, submissionFor, submittedThisRound, sumScores, tieAtFront, totals, type GameRec, type GameState, type PlayerRec, type RoundRec, type SubmissionRec, type Tally, waitingOn } from './state.js'
 
 function player(id: string, seat: number, joined = 1): PlayerRec {
   return {
@@ -520,5 +520,52 @@ describe('a seat sitting out', () => {
     }
     expect(committedTotals(state).get('gone')).toBe(12)
     expect(standings(state, 'highest').map((r) => r.player.id)).toContain('gone')
+  })
+})
+
+/**
+ * The third status.
+ *
+ * Every case here fails against `status !== 'draft'` and passes against
+ * `isAnswer`. They are written with Oh Hell's `bid` because that is the first
+ * game to need one, but nothing here knows what a bid is — the property under
+ * test is that an UNRECOGNISED status is not an answer.
+ */
+describe('isAnswer — final means final', () => {
+  it('counts a final row and an absent status', () => {
+    expect(isAnswer(sub('r1', 'ann', 10, { status: 'final' }))).toBe(true)
+    expect(isAnswer(sub('r1', 'ann', 10))).toBe(true)
+  })
+
+  it('does not count a draft', () => {
+    expect(isAnswer(sub('r1', 'ann', 10, { status: 'draft' }))).toBe(false)
+  })
+
+  it('does not count a status the kit has never heard of', () => {
+    expect(isAnswer(sub('r1', 'ann', 0, { status: 'bid' }))).toBe(false)
+  })
+
+  it('leaves a seat that has only bid still owing the round', () => {
+    const s = state(
+      [round('r1', 1, 'open')],
+      [
+        sub('r1', 'ann', 0, { status: 'bid' }),
+        sub('r1', 'bo', 13, { status: 'final' }),
+      ],
+    )
+    expect([...submittedThisRound(s)]).toEqual(['bo'])
+    expect(waitingOn(s).map((p) => p.id)).toEqual(['ann', 'cy'])
+  })
+
+  it('keeps a bid out of the totals', () => {
+    const s = state(
+      [round('r1', 1, 'closed')],
+      [
+        sub('r1', 'ann', 99, { status: 'bid' }),
+        sub('r1', 'bo', 13, { status: 'final' }),
+      ],
+    )
+    expect(committedTotals(s).get('ann')).toBe(0)
+    expect(committedTotals(s).get('bo')).toBe(13)
   })
 })

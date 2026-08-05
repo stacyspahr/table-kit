@@ -113,8 +113,11 @@ export interface SubmissionRec {
    * `draft` is an autosave of a pile somebody is still counting — a safety net,
    * not an answer. Absent means final, so a game with no drafts (Flip 7) needs
    * no changes.
+   *
+   * ⚠️ Read it through {@link isAnswer} and never by comparing to `'draft'`.
+   * See the note on that function.
    */
-  status?: 'draft' | 'final'
+  status?: SubmissionStatus
   /** Who physically entered it. Differs from `player` on a proxied seat. */
   submitted_by: string
   client_uuid: string
@@ -163,9 +166,43 @@ export function sumScores<S extends SubmissionRec>(
   return out
 }
 
+/**
+ * What a seat's entry is currently.
+ *
+ * `draft` and `final` are the kit's; a game may add its own intermediate
+ * states between them. Oh Hell has `bid` — the bid is recorded and the hand
+ * has not been played yet — because a bid is not a second kind of record, it
+ * is an earlier state of the same row.
+ */
+export type SubmissionStatus = 'draft' | 'final' | (string & {})
+
+/**
+ * Does this row count as the seat's answer for its round?
+ *
+ * ⚠️ **Final means final, and absent means final.** This deliberately tests
+ * for what an answer IS rather than for what it is not, and the difference is
+ * load-bearing. The kit spent seven call sites asking `status !== 'draft'`,
+ * which is an allowlist by exclusion: it was correct only for as long as
+ * `draft` was the sole thing that wasn't an answer. The first game to add a
+ * third status — a bid, a pass, a partial — would have had it silently counted
+ * everywhere at once, closing rounds on it, revealing on it and giving awards
+ * for it, with nothing to grep for.
+ *
+ * A new status is now excluded until a game says otherwise, which is the safe
+ * direction to be wrong in: a round that will not close is visible in seconds,
+ * and a round that closed on half an answer is found a week later.
+ *
+ * ⚠️ The server-side round hooks carry their own copy of this rule as the SQL
+ * filter `status != 'draft'`. Any app with a third status must write
+ * `status = 'final'` in its hook instead, or the round flips the moment the
+ * intermediate state lands. `nine_rounds` and `heat_rounds` are correct as
+ * they stand — neither app has one.
+ */
+export const isAnswer = <S extends SubmissionRec>(s: S): boolean =>
+  (s.status ?? 'final') === 'final'
+
 /** Everything that counts as an answer — drafts are half-counted piles. */
-const scored = <S extends SubmissionRec>(subs: S[]): S[] =>
-  subs.filter((s) => s.status !== 'draft')
+const scored = <S extends SubmissionRec>(subs: S[]): S[] => subs.filter(isAnswer)
 
 /** Running total per player id, including any round still open. */
 export function totals<G extends GameRec, S extends SubmissionRec>(
@@ -211,7 +248,7 @@ export function submittedThisRound<G extends GameRec, S extends SubmissionRec>(
   if (!current) return new Set()
   return new Set(
     state.submissions
-      .filter((s) => s.round === current.id && s.status !== 'draft')
+      .filter((s) => s.round === current.id && isAnswer(s))
       .map((s) => s.player),
   )
 }

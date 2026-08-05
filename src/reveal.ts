@@ -23,7 +23,7 @@
 
 import type { Winner } from './config.js'
 import type { GameRec, GameState, PlayerRec, SubmissionRec, Tally } from './state.js'
-import { owesIn, sumScores } from './state.js'
+import { isAnswer, owesIn, sumScores } from './state.js'
 import type { RoundRec } from './state.js'
 
 export interface RevealRow {
@@ -54,7 +54,7 @@ export function totalsAsOf<G extends GameRec, S extends SubmissionRec>(
   )
   return tally(
     state.players,
-    state.submissions.filter((s) => upto.has(s.round) && s.status !== 'draft'),
+    state.submissions.filter((s) => upto.has(s.round) && isAnswer(s)),
   )
 }
 
@@ -81,7 +81,7 @@ export function rowsForRound<G extends GameRec, S extends SubmissionRec>(
   // from `totalsAsOf(n)`, precisely because the round may not be closed yet.
   const thisRound = tally(
     state.players,
-    state.submissions.filter((s) => s.round === round.id && s.status !== 'draft'),
+    state.submissions.filter((s) => s.round === round.id && isAnswer(s)),
   )
 
   return state.players

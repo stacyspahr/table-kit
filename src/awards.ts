@@ -36,7 +36,7 @@
  * one can encode it in the measure.
  */
 
-import { owesIn } from './state.js'
+import { isAnswer, owesIn } from './state.js'
 import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './state.js'
 
 /**
@@ -144,7 +144,7 @@ export function submissionsByPlayer<S extends SubmissionRec>(
   const out = new Map<string, S[]>()
   for (const p of ctx.players) out.set(p.id, [])
   for (const s of ctx.submissions) {
-    if (s.status === 'draft') continue
+    if (!isAnswer(s)) continue
     out.get(s.player)?.push(s)
   }
   return out
@@ -162,7 +162,7 @@ export function closedSubmissions<S extends SubmissionRec>(
   submissions: S[],
 ): S[] {
   const closed = new Set(rounds.filter((r) => r.status === 'closed').map((r) => r.id))
-  return submissions.filter((s) => closed.has(s.round) && s.status !== 'draft')
+  return submissions.filter((s) => closed.has(s.round) && isAnswer(s))
 }
 
 /**
@@ -183,9 +183,7 @@ export function roundScope<G extends GameRec, S extends SubmissionRec>(
   return {
     players: state.players.filter((p) => owesIn(p, round.round_number)),
     rounds: [round],
-    submissions: state.submissions.filter(
-      (s) => s.round === round.id && s.status !== 'draft',
-    ),
+    submissions: state.submissions.filter((s) => s.round === round.id && isAnswer(s)),
   }
 }
 

@@ -8,7 +8,14 @@
 import type PocketBase from 'pocketbase'
 import type { TableKitConfig } from './config.js'
 import type { Queue } from './queue.js'
-import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './state.js'
+import type {
+  GameRec,
+  GameState,
+  PlayerRec,
+  RoundRec,
+  SubmissionRec,
+  SubmissionStatus,
+} from './state.js'
 
 export interface Actions<G extends GameRec, S extends SubmissionRec> {
   /**
@@ -143,6 +150,19 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
     payload: Record<string, unknown>
     score: number
     final: boolean
+    /**
+     * A game's own intermediate state, when it has one. Wins over `final`.
+     *
+     * Oh Hell writes `bid` here: the bid is recorded and the hand has not been
+     * played, which is neither a draft (nobody is mid-tap) nor an answer (no
+     * tricks have been taken). Games without one leave it alone and `final`
+     * decides, which is why nothing else in the suite changed.
+     *
+     * ⚠️ Anything other than `final` is NOT an answer — see {@link isAnswer}.
+     * Rounds will not close on it and the reveal will not fire on it, which is
+     * the point.
+     */
+    status?: SubmissionStatus
   }): void {
     const proxied = opts.submittedBy.id !== opts.player.id
     queue.upsert(c.submissions, entryKey(opts.round.id, opts.player.id), {
@@ -150,7 +170,7 @@ export function createActions<G extends GameRec = GameRec, S extends SubmissionR
       player: opts.player.id,
       submitted_by: opts.submittedBy.id,
       computed_score: opts.score,
-      status: opts.final ? 'final' : 'draft',
+      status: opts.status ?? (opts.final ? 'final' : 'draft'),
       ...opts.payload,
       ...(proxied ? { proxy_reason: 'declared' } : {}),
     })
