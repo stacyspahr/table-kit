@@ -7,6 +7,23 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.35.0
+
+- New `--tk-link`, and `.linklike` uses it instead of `--tk-accent`.
+- ⚠️ **An accent is a SURFACE you press, not text on the page.** The same hue
+  used as a tappable WORD has to clear 4.5:1 against the background, and a
+  light accent never does — Play Nine's box yellow on its cream page measured
+  **1.5:1**. Technically drawn, effectively absent, and no amount of reading
+  glasses fixes a contrast ratio. It is now navy at 12.8:1.
+- `.linklike` is also underlined and semibold, so colour is never the only
+  thing saying a word is tappable.
+- `--tk-note-size` 0.92rem → 1rem. Reported from a dry run: *"the small writing
+  is way too hard to read. We shouldn't need to put our glasses on and off to
+  use it and play cards."* Fine print at a card table is read at arm's length
+  in whatever light the room has.
+- ⚠️ `--tk-link` defaults to `--tk-accent`, which is right for the two dark
+  games. **A light-themed game must override it.**
+
 ## v0.34.0
 
 - `TableBoard` marks a seat nobody's phone is holding. Found in a dry run, not

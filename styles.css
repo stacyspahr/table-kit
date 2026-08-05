@@ -35,6 +35,19 @@
 :root {
   --tk-ink: #ffffff;
   --tk-muted: #999999;
+  /*
+   * The colour of a TAPPABLE WORD, which is deliberately not the accent.
+   *
+   * ⚠️ An accent is a SURFACE you press — a button fill with dark ink on it.
+   * The same hue used as TEXT on the page has to clear 4.5:1 against it, and a
+   * light accent never does. Play Nine's box yellow on its cream page measured
+   * about 1.5:1: technically drawn, effectively absent, and no amount of
+   * reading glasses fixes a contrast ratio.
+   *
+   * Defaults to the accent because the dark-themed games are fine that way.
+   * A light-themed game MUST override it — see play-nine/src/index.css.
+   */
+  --tk-link: var(--tk-accent);
   --tk-line: #333333;
 
   --tk-accent: #37b7a4;
@@ -91,7 +104,11 @@
   --tk-btn-size-big: 1.2rem;
 
   --tk-note-margin: 0;
-  --tk-note-size: 0.92rem;
+  /* Bumped from 0.92rem after a dry run: "the small writing is way too hard to
+     read. We shouldn't need to put our glasses on and off to use it and play
+     cards." Fine print at a card table is read at arm's length in whatever
+     light the room has. */
+  --tk-note-size: 1rem;
   --tk-muted-align: left;
   --tk-disabled-opacity: 0.5;
 
@@ -590,9 +607,15 @@ button.row:disabled {
  */
 .linklike {
   font: inherit;
+  font-weight: 600;
   background: none;
   border: 0;
-  color: var(--tk-accent);
+  color: var(--tk-link);
+  /* Underlined so the colour is never the only thing saying this is tappable —
+     which also means it survives being the same ink as the text around it. */
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
   padding: 10px 4px;
   min-height: var(--tk-tap-min);
   text-align: left;
