@@ -70,7 +70,19 @@ export function classesInSource(code: string): Set<string> {
  */
 function classNameExpressions(code: string): string[] {
   const out: string[] = []
-  const attr = /className\s*=\s*/g
+  /**
+   * ⚠️ `=` OR `:`. Source says `className="row"`; COMPILED output says
+   * `className: "row"` inside a `jsx(...)` call, and the compiled form is the
+   * only one available for the kit's own components once an app has installed
+   * them.
+   *
+   * That matters because the kit renders classes it does not style and leaves
+   * them to the app — `.seg`, `.pill.source` — and those are precisely the
+   * ones an app forgets. Scanning only the app's own components missed both.
+   * A rulebook entry shipped reading "Say it out loud, then tap ittable
+   * convention" for exactly this reason.
+   */
+  const attr = /className\s*[=:]\s*/g
   let m: RegExpExecArray | null
 
   while ((m = attr.exec(code))) {
@@ -221,7 +233,9 @@ function sourceFiles(path: string): string[] {
     if (entry === 'node_modules' || entry.startsWith('.')) continue
     const full = join(path, entry)
     if (statSync(full).isDirectory()) out.push(...sourceFiles(full))
-    else if (extname(full) === '.tsx' || extname(full) === '.jsx') out.push(full)
+    // `.js` so an app can point this at the kit's COMPILED components, which
+    // is the only way to see the classes the kit renders and the app styles.
+    else if (['.tsx', '.jsx', '.js'].includes(extname(full))) out.push(full)
   }
   return out
 }

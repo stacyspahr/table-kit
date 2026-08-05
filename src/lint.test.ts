@@ -139,3 +139,16 @@ describe('a condition is not a class', () => {
     ])
   })
 })
+
+describe('compiled components', () => {
+  it('reads a className from compiled JSX, not just source', () => {
+    // ⚠️ What `jsx()` output looks like. The kit's own components are only
+    // available to an app in this form, and they render classes the kit does
+    // NOT style — `.seg`, `.pill.source` — which are exactly the ones an app
+    // forgets. Scanning source alone missed both.
+    expect([...classesInSource('jsx("span", { className: "pill source" })')].sort()).toEqual([
+      'pill',
+      'source',
+    ])
+  })
+})
