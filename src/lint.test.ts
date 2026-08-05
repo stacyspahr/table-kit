@@ -152,3 +152,19 @@ describe('compiled components', () => {
     ])
   })
 })
+
+describe('comments are not code', () => {
+  it('ignores a className inside a block comment', () => {
+    // ⚠️ Found for real: pointed at the kit's compiled output, this file's own
+    // JSDoc examples came back as undefined classes.
+    expect([...classesInSource('/** e.g. className="ghost-class" */')]).toEqual([])
+  })
+
+  it('ignores a className inside a line comment', () => {
+    expect([...classesInSource('// className="ghost-class"')]).toEqual([])
+  })
+
+  it('does not mistake a url for a comment', () => {
+    expect([...classesInSource(`<a href="https://x.test" className="real" />`)]).toEqual(['real'])
+  })
+})

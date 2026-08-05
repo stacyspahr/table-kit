@@ -49,7 +49,7 @@ const CLASS_TOKEN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
 export function classesInSource(code: string): Set<string> {
   const out = new Set<string>()
 
-  for (const expr of classNameExpressions(code)) {
+  for (const expr of classNameExpressions(withoutComments(code))) {
     for (const literal of stringLiterals(expr)) {
       for (const token of literal.split(/\s+/)) {
         if (CLASS_TOKEN.test(token)) out.add(token)
@@ -58,6 +58,24 @@ export function classesInSource(code: string): Set<string> {
   }
 
   return out
+}
+
+/**
+ * Source with its comments removed.
+ *
+ * ⚠️ Found by pointing this at the kit's own compiled output, where it read
+ * THIS FILE'S documentation and reported `x`, `y`, `idle`, `saving`, `key` and
+ * `wide` as undefined classes — every one of them an example inside a JSDoc
+ * block explaining how the extractor works. Comments were already stripped
+ * from stylesheets for exactly this reason; the source side never was.
+ *
+ * ⚠️ `//` is only treated as a comment when it does not follow a colon, so a
+ * `'https://…'` in a string survives. Over-stripping here would silently drop
+ * real class names that happened to share a line with a URL, and a false
+ * negative is quiet in a way a false positive is not.
+ */
+function withoutComments(code: string): string {
+  return code.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1')
 }
 
 /**
