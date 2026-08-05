@@ -1,0 +1,105 @@
+/**
+ * The class-coverage check.
+ *
+ * Every case here is a shape that actually appears in one of the four scorers,
+ * because the failure mode this guards against is subtle and a check that cries
+ * wolf gets switched off. The two that matter most are the two that must NOT
+ * report anything: a bare identifier in a ternary, and the interpolated half of
+ * a template literal.
+ */
+
+import { describe, expect, it } from 'vitest'
+import { classesInSource, classesInStylesheet } from './lint.js'
+
+const used = (code: string) => [...classesInSource(code)].sort()
+
+describe('classesInSource', () => {
+  it('reads a plain string attribute', () => {
+    expect(used('<div className="screen center" />')).toEqual(['center', 'screen'])
+  })
+
+  it('reads both arms of a ternary', () => {
+    expect(used(`<span className={isMe ? 'row mine' : 'row'} />`)).toEqual(['mine', 'row'])
+  })
+
+  it('does NOT read the identifier the ternary tests', () => {
+    // The whole point. Demanding a `.busy` rule for a variable is nonsense the
+    // first time somebody hits it and noise every time after.
+    expect(used(`<button className={busy ? 'saving' : 'idle'} />`)).toEqual(['idle', 'saving'])
+  })
+
+  it('reads the static half of a template literal and drops the rest', () => {
+    // `pill lobby` / `pill active` / `pill finished` — only `pill` is knowable
+    // without running the app, and guessing the rest would fail honest code.
+    expect(used('<span className={`pill ${g.status}`} />')).toEqual(['pill'])
+  })
+
+  it('survives the braces inside a template literal', () => {
+    // A non-greedy \{([^}]*)\} stops at the FIRST closing brace and loses the
+    // rest of the attribute — this is the case that breaks a regex.
+    expect(used('<span className={`row ${a ? "mine" : "theirs"} big`} />')).toEqual([
+      'big',
+      'mine',
+      'row',
+      'theirs',
+    ])
+  })
+
+  it('reads several attributes in one file', () => {
+    expect(used('<a className="one" /><b className="two" />')).toEqual(['one', 'two'])
+  })
+
+  it('ignores things that are not class-shaped', () => {
+    // Handlers, urls and sentences all live near classNames in real files.
+    expect(used(`<div className={cx(styles.Thing, "real-class")} />`)).toEqual(['real-class'])
+  })
+
+  it('finds nothing in a file with no classes', () => {
+    expect(used('export const x = 1')).toEqual([])
+  })
+})
+
+describe('classesInStylesheet', () => {
+  it('reads a plain rule', () => {
+    expect([...classesInStylesheet('.screen { color: red }')]).toContain('screen')
+  })
+
+  it('reads both halves of a compound selector', () => {
+    const found = classesInStylesheet('.row.mine { font-weight: 700 }')
+    expect(found.has('row')).toBe(true)
+    expect(found.has('mine')).toBe(true)
+  })
+
+  it('reads a class named only inside a pseudo-class', () => {
+    // `.board-list .row:not(.tappable)::after` is how the chevron gutter is
+    // reserved — `tappable` is styled, even though no rule is "for" it.
+    expect(classesInStylesheet('.list .row:not(.tappable)::after { content: "›" }').has('tappable'))
+      .toBe(true)
+  })
+
+  it('ignores classes named in comments', () => {
+    // ⚠️ styles.css is heavily commented and its prose says things like
+    // ".row wraps rather than squeezing". Counting that as a definition would
+    // hide a genuinely missing rule behind a sentence describing it.
+    expect(classesInStylesheet('/* .row wraps rather than squeezing */').has('row')).toBe(false)
+  })
+
+  it('ignores custom properties', () => {
+    expect(classesInStylesheet(':root { --tk-row-gap: 8px }').has('tk-row-gap')).toBe(false)
+  })
+})
+
+describe('the two sets together', () => {
+  it('reports a class the stylesheet never defines', () => {
+    // The Oh Hell failure, reduced: the picker was three bare buttons.
+    const src = classesInSource(`<button className="seg-btn on" />`)
+    const css = classesInStylesheet('.btn { padding: 8px }')
+    expect([...src].filter((c) => !css.has(c)).sort()).toEqual(['on', 'seg-btn'])
+  })
+
+  it('reports nothing when every class is styled', () => {
+    const src = classesInSource(`<div className="screen"><span className="row mine" /></div>`)
+    const css = classesInStylesheet('.screen{}.row{}.row.mine{}')
+    expect([...src].filter((c) => !css.has(c))).toEqual([])
+  })
+})
