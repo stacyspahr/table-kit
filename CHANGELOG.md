@@ -7,6 +7,23 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.34.0
+
+- `TableBoard` marks a seat nobody's phone is holding. Found in a dry run, not
+  by a test: a seat added for someone without a phone showed on the host's
+  board as an ordinary row.
+- ⚠️ **The mark means something different on a board than in a lobby.** In a
+  lobby it says "this person has no phone"; on a board it says **somebody else
+  has to enter for this seat**. Without it the row reads as a player who will
+  fill it in themselves, and the table waits on a chair with nobody in it.
+- `NoPhone` moves to its own module so `board.tsx` can draw it without a cycle
+  back through `react.tsx`. Still exported from `table-kit/react` — nothing
+  consuming it changes.
+- ⚠️ The board tests had been building every fixture seat with an empty
+  `device_id`, which is exactly what marks a seat phoneless — so every test
+  player silently was one, and the missing mark had nowhere to show up. Fixed,
+  and the case is now pinned.
+
 ## v0.33.0
 
 - New: `sitOut` / `sitBackIn`, and `owesIn(player, roundNumber)`. Four playing,

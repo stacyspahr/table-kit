@@ -25,6 +25,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { NoPhone } from './nophone.js'
 import { lastHandover, owesIn, type Standing } from './state.js'
 import type { PlayerRec } from './state.js'
 
@@ -107,6 +108,11 @@ export function TableBoard({
             </span>
             <span className="row-main">
               {row.player.display_name}
+              {/* ⚠️ The whole point of this mark on a BOARD, as opposed to in a
+                  lobby: these are the seats somebody else has to enter for. A
+                  row without it reads as a player who will fill it in
+                  themselves, so a table waits on a chair with nobody in it. */}
+              {!row.player.device_id && <NoPhone />}
               {round !== undefined && !owesIn(row.player, round) && (
                 <span className="pill">{sittingOutLabel}</span>
               )}

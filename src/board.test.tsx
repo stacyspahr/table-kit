@@ -14,12 +14,15 @@ import type { GameState, GameRec, PlayerRec, RoundRec, SubmissionRec } from './s
 
 afterEach(cleanup)
 
-const player = (id: string, name: string, seat: number): PlayerRec => ({
+// A phone on every seat by default. An empty `device_id` is what MARKS a seat
+// as phoneless, so a fixture that left it blank quietly made every test player
+// one — and hid the mark's absence for as long as nothing drew it.
+const player = (id: string, name: string, seat: number, deviceId = 'phone'): PlayerRec => ({
   id,
   game: 'g1',
   display_name: name,
   seat_order: seat,
-  device_id: '',
+  device_id: deviceId,
   guest: '',
   roster_entry: '',
   joined_round: 1,
@@ -69,6 +72,29 @@ describe('TableBoard', () => {
     expect(names).toEqual(['Ann', 'Bo'])
     expect(screen.getByText('+4')).toBeTruthy()
     expect(screen.getByText('+9')).toBeTruthy()
+  })
+
+  /**
+   * ⚠️ Found in a dry run, not by a test: Nana was added without a phone and
+   * her row on the host's board said nothing about it.
+   *
+   * The mark means something different here than in a lobby. In a lobby it is
+   * "this person has no phone"; on a BOARD it is "somebody else has to enter
+   * for this seat". Without it the row reads as a player who will fill it in
+   * themselves, and the table waits on a chair with nobody in it.
+   */
+  it('marks a seat nobody’s phone is holding', () => {
+    const nana = player('nana', 'Nana', 3, '')
+    const s = state([], 'open')
+    render(
+      <TableBoard
+        standings={standings({ ...s, players: [ann, nana] }, 'lowest')}
+        done={new Set()}
+        format={(n) => n}
+      />,
+    )
+    const marks = screen.getAllByLabelText('no phone')
+    expect(marks.length).toBe(1)
   })
 
   it('marks who has handed in and who has not', () => {

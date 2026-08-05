@@ -21,6 +21,7 @@ import { fetchSeats, lobbyState, type LobbyState } from './lobby.js'
 import type { TableKitConfig } from './config.js'
 import type { RosterLike } from './join.js'
 import type { PlayerRec } from './state.js'
+import { NoPhone } from './nophone.js'
 
 /**
  * The full-screen join QR.
@@ -1002,54 +1003,6 @@ export function useLobby({
 }
 
 /**
- * A seat with no phone of its own.
- *
- * ── Why the kit owns the MARK ────────────────────────────────────────────
- * Because three apps were about to say the same thing three ways. "No phone"
- * is one of the load-bearing facts at a card table — it is the difference
- * between a seat that will fill itself in and one somebody has to volunteer
- * for — and a fact that important cannot look like a different fact depending
- * on which scorer is open.
- *
- * A glyph rather than the words. It went onto the leaderboard first, where
- * there was no room for two words beside a name, a tick, a total and a bar —
- * and the lobbies kept the text pill on the grounds that they had the space.
- * That lasted one screenshot. The space was never the argument: a fact that
- * important should not change shape between the screen where you meet it and
- * the screen where you act on it, and the lobby is where you meet it.
- *
- * `currentColor`, so it takes the color of whatever it is set beside without an
- * app having to style it.
- */
-export function NoPhone({ title = 'no phone' }: { title?: string }) {
-  return (
-    <svg
-      className="tk-no-phone"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      role="img"
-      aria-label={title}
-    >
-      <title>{title}</title>
-      {/* A plain handset with a line through it, and plain is the point. An
-          earlier cut broke the outline at the corners the slash crosses, on the
-          theory that it would read as struck through rather than smudged. At
-          17px it read as neither — just a damaged rectangle. The slash runs
-          past the body at both ends, which is what makes it a slash and not a
-          crack. */}
-      <rect x="6" y="2" width="12" height="20" rx="2.5" />
-      <line x1="3" y1="3" x2="21" y2="21" />
-    </svg>
-  )
-}
-
-/**
  * The seats, as they arrive.
  *
  * Names only. What the lobby SAYS around this list — what the game is called,
@@ -1219,6 +1172,8 @@ export {
 } from './rules.js'
 
 export { ScorePad, closedRounds, signed } from './scorepad.js'
+
+export { NoPhone } from './nophone.js'
 
 export { TakeSeat } from './takeseat.js'
 
