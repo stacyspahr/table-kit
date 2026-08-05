@@ -36,6 +36,7 @@
  * one can encode it in the measure.
  */
 
+import { owesIn } from './state.js'
 import type { GameRec, GameState, PlayerRec, RoundRec, SubmissionRec } from './state.js'
 
 /**
@@ -180,7 +181,7 @@ export function roundScope<G extends GameRec, S extends SubmissionRec>(
   round: RoundRec,
 ): AwardContext<S> {
   return {
-    players: state.players.filter((p) => p.joined_round <= round.round_number),
+    players: state.players.filter((p) => owesIn(p, round.round_number)),
     rounds: [round],
     submissions: state.submissions.filter(
       (s) => s.round === round.id && s.status !== 'draft',

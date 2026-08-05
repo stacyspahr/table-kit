@@ -6,8 +6,8 @@
  * bugs in the suite came from treating an autosave as an answer.
  */
 
-import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { TableBoard, WaitingOn } from './board.js'
 import { standings } from './state.js'
 import type { GameState, GameRec, PlayerRec, RoundRec, SubmissionRec } from './state.js'
@@ -114,5 +114,64 @@ describe('WaitingOn', () => {
   it('renders nothing when nobody is owing and there is nothing to say', () => {
     const { container } = render(<WaitingOn players={[]} />)
     expect(container.innerHTML).toBe('')
+  })
+})
+
+describe('a seat sitting out', () => {
+  const s = state([sub('r1', 'ann', 4)], 'open')
+  const gone = { ...bo, left_round: 1 }
+  const withGone: GameState = { ...s, players: [ann, gone] }
+
+  it('takes neither mark — an empty circle would read as still to hand in', () => {
+    const { container } = render(
+      <TableBoard
+        standings={standings(withGone, 'lowest')}
+        done={new Set(['ann'])}
+        format={(n) => n}
+        round={1}
+      />,
+    )
+    expect([...container.querySelectorAll('.tk-board-tick')].map((el) => el.textContent)).toEqual([
+      '✓',
+      '',
+    ])
+  })
+
+  it('says so on the row, in the game’s own words', () => {
+    render(
+      <TableBoard
+        standings={standings(withGone, 'lowest')}
+        done={new Set()}
+        format={(n) => n}
+        round={1}
+        sittingOutLabel="out this hand"
+      />,
+    )
+    expect(screen.getByText('out this hand')).toBeTruthy()
+  })
+
+  it('marks nobody when no round is given — an old caller is unaffected', () => {
+    const { container } = render(
+      <TableBoard standings={standings(withGone, 'lowest')} done={new Set()} format={(n) => n} />,
+    )
+    expect(container.querySelectorAll('.pill').length).toBe(0)
+  })
+
+  it('rows are plain until a mode makes them tappable', () => {
+    const { container, rerender } = render(
+      <TableBoard standings={standings(withGone, 'lowest')} done={new Set()} format={(n) => n} />,
+    )
+    expect(container.querySelectorAll('button').length).toBe(0)
+    const onPick = vi.fn()
+    rerender(
+      <TableBoard
+        standings={standings(withGone, 'lowest')}
+        done={new Set()}
+        format={(n) => n}
+        onPick={onPick}
+      />,
+    )
+    fireEvent.click(screen.getByText('Ann'))
+    expect(onPick).toHaveBeenCalledWith(ann)
   })
 })

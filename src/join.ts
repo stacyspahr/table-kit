@@ -310,3 +310,80 @@ export async function reclaimSeat({
 
   return pb.collection(config.collections.players).update<PlayerRec>(seat.id, data)
 }
+
+/**
+ * Stop waiting on a seat nobody is going to fill.
+ *
+ * ── When this, and when a handover ───────────────────────────────────────
+ * Somebody leaves and SOMEBODY ELSE picks up their cards — that is
+ * `reclaimSeat` with a `takeOver`, and it is much the commoner shape at a
+ * family table. This is the other case: four playing, one goes to bed, three
+ * carry on. Nobody is in that chair now.
+ *
+ * ── ⚠️ Why this is not a delete ──────────────────────────────────────────
+ * A seat's submissions relate to it, so removing the row would rewrite the
+ * night to say that player was never there: every closed round's totals change
+ * and the share card loses a row. Everything they scored stands. All this
+ * changes is what the seat OWES from here on, which is what unjams a table
+ * that would otherwise be waited on forever.
+ *
+ * ── ⚠️ `round` is the FIRST round they do not owe ────────────────────────
+ * Not the last one they played. Pass the round in play: if the table is
+ * halfway through hole five and somebody walks, they do not owe hole five.
+ * This same number is checked by the server's round hooks, so getting it
+ * backwards here shows a table ready to score while the round never flips.
+ *
+ * ── ⚠️ Setting this may complete the round ───────────────────────────────
+ * If they were the last seat still owing, the table is now finished with the
+ * round the moment this lands — and no submission was written, so nothing on
+ * the submissions collection fires. The server watches the players collection
+ * for exactly this (`sit_out.pb.js`); without it the round sits open with
+ * nobody on screen to explain why.
+ */
+export async function sitOut({
+  pb,
+  config,
+  seat,
+  round,
+}: {
+  pb: PocketBase
+  config: TableKitConfig
+  seat: PlayerRec
+  /** The round in play — the first one they do NOT owe. */
+  round: number
+}): Promise<PlayerRec> {
+  return pb.collection(config.collections.players).update<PlayerRec>(seat.id, {
+    left_round: Math.max(1, round),
+  })
+}
+
+/**
+ * Back in after all — they finished the phone call.
+ *
+ * Clears the flag and moves the front edge to now, so the rounds they missed
+ * stay missed. Their earlier scores are untouched; the gap in the middle is
+ * simply rounds they did not owe.
+ *
+ * ⚠️ A seat therefore has ONE span, not a list of them. Somebody who sits out
+ * twice in a night ends up with a front edge at their latest return, which
+ * loses the shape of the first absence. That is deliberate: the alternative is
+ * a list of intervals read by three call sites and two server hooks, to
+ * describe an evening that has already stopped being about the app.
+ */
+export async function sitBackIn({
+  pb,
+  config,
+  seat,
+  round,
+}: {
+  pb: PocketBase
+  config: TableKitConfig
+  seat: PlayerRec
+  /** The round in play — the first one they owe again. */
+  round: number
+}): Promise<PlayerRec> {
+  return pb.collection(config.collections.players).update<PlayerRec>(seat.id, {
+    left_round: null,
+    joined_round: Math.max(1, round),
+  })
+}

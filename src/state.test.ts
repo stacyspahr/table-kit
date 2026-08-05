@@ -14,28 +14,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import {
-  asEndCondition,
-  committedTotals,
-  endReached,
-  goalReached,
-  isFinalRound,
-  roundsLeft,
-  roundsPlayed,
-  standings,
-  submissionFor,
-  submittedThisRound,
-  sumScores,
-  tieAtFront,
-  totals,
-  waitingOn,
-  type GameRec,
-  type GameState,
-  type PlayerRec,
-  type RoundRec,
-  type SubmissionRec,
-  type Tally,
-} from './state.js'
+import { asEndCondition, committedTotals, endReached, goalReached, isFinalRound, owesIn, roundsLeft, roundsPlayed, standings, submissionFor, submittedThisRound, sumScores, tieAtFront, totals, type GameRec, type GameState, type PlayerRec, type RoundRec, type SubmissionRec, type Tally, waitingOn } from './state.js'
 
 function player(id: string, seat: number, joined = 1): PlayerRec {
   return {
@@ -446,5 +425,100 @@ describe('end conditions', () => {
       [sub('r1', 'ann', 30), sub('r1', 'bo', 30)],
     )
     expect(tieAtFront(s, 'lowest', nine)).toEqual([])
+  })
+})
+
+/**
+ * Sitting out — somebody goes to bed and NOBODY picks up their cards.
+ *
+ * The commoner shape is a handover, which needs none of this: the seat carries
+ * on owing because somebody is in it. This is the other case, and the whole
+ * point of it is that the table stops being waited on.
+ */
+describe('a seat sitting out', () => {
+  const p = (id: string, over: Partial<PlayerRec> = {}): PlayerRec => ({
+    id,
+    game: 'g1',
+    display_name: id,
+    seat_order: 1,
+    device_id: '',
+    guest: '',
+    roster_entry: '',
+    joined_round: 1,
+    ...over,
+  })
+
+  describe('owesIn', () => {
+    it('owes from the round they sat down on', () => {
+      expect(owesIn(p('a', { joined_round: 3 }), 2)).toBe(false)
+      expect(owesIn(p('a', { joined_round: 3 }), 3)).toBe(true)
+    })
+
+    /**
+     * ⚠️ `left_round` is the FIRST round they do not owe, not the last one
+     * they played. The server's round hooks check the same number, so getting
+     * this backwards shows a table ready to score while the round never flips.
+     */
+    it('stops owing ON left_round, not after it', () => {
+      const gone = p('a', { left_round: 5 })
+      expect(owesIn(gone, 4)).toBe(true)
+      expect(owesIn(gone, 5)).toBe(false)
+      expect(owesIn(gone, 6)).toBe(false)
+    })
+
+    it('treats an empty flag as still playing', () => {
+      expect(owesIn(p('a'), 9)).toBe(true)
+      expect(owesIn(p('a', { left_round: 0 }), 9)).toBe(true)
+    })
+
+    it('handles a seat that sat down late and left early', () => {
+      const brief = p('a', { joined_round: 3, left_round: 5 })
+      expect([1, 2, 3, 4, 5, 6].map((n) => owesIn(brief, n))).toEqual([
+        false, false, true, true, false, false,
+      ])
+    })
+  })
+
+  it('drops them out of waitingOn, which is what unjams the table', () => {
+    const state: GameState = {
+      game: { id: 'g1', join_token: 't', status: 'active', host_user: 'h', created: '' },
+      players: [p('ann'), p('bo'), p('gone', { left_round: 2 })],
+      rounds: [{ id: 'r2', game: 'g1', round_number: 2, status: 'open' }],
+      submissions: [
+        {
+          id: 's1',
+          round: 'r2',
+          player: 'ann',
+          computed_score: 4,
+          submitted_by: 'ann',
+          client_uuid: 'u1',
+          created: '',
+        },
+      ],
+      current: { id: 'r2', game: 'g1', round_number: 2, status: 'open' },
+    }
+    expect(waitingOn(state).map((x) => x.id)).toEqual(['bo'])
+  })
+
+  it('keeps their total on the board — they played those rounds', () => {
+    const state: GameState = {
+      game: { id: 'g1', join_token: 't', status: 'active', host_user: 'h', created: '' },
+      players: [p('ann'), p('gone', { left_round: 2 })],
+      rounds: [{ id: 'r1', game: 'g1', round_number: 1, status: 'closed' }],
+      submissions: [
+        {
+          id: 's1',
+          round: 'r1',
+          player: 'gone',
+          computed_score: 12,
+          submitted_by: 'gone',
+          client_uuid: 'u1',
+          created: '',
+        },
+      ],
+      current: null,
+    }
+    expect(committedTotals(state).get('gone')).toBe(12)
+    expect(standings(state, 'highest').map((r) => r.player.id)).toContain('gone')
   })
 })

@@ -7,6 +7,37 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.33.0
+
+- New: `sitOut` / `sitBackIn`, and `owesIn(player, roundNumber)`. Four playing,
+  one goes to bed, **nobody picks up their cards**. Their total stays on the
+  board, every round they played still counts, and the table simply stops being
+  waited on — which is what unjams a round that was owed from forever.
+- ⚠️ **This is the rarer half.** The commoner shape is a handover (v0.31.0),
+  where somebody else takes the chair and the seat never stops owing. Sitting
+  out is only for when nobody replaces them.
+- ⚠️ **`left_round` is the FIRST round they do not owe**, not the last one they
+  played. It is checked in three places in the kit and again by two server
+  hooks; getting it backwards shows a table ready to score while the round
+  never flips.
+- `owesIn` replaces three separate copies of the `joined_round <=` test —
+  `waitingOn`, `awards.roundScope`, `reveal.rowsForRound`. One rule, one place,
+  because a seat now has two edges rather than one.
+- `TableBoard` takes `round` and marks a seat that is sitting out. ⚠️ It shows
+  **neither** tick for them: an empty circle beside somebody who has gone to
+  bed reads as "still to hand in", which is the exact confusion this ends.
+- `TableBoard` takes an optional `onPick` so a game can turn its rows into
+  targets. ⚠️ Only from an explicit mode — a tap on a name already means "that's
+  me" on the claim screen and "enter for them" on the play screens.
+- ⚠️ Server-side, and this is the part that could strand a live game: the
+  `owing` filter in `nine_rounds` and `heat_rounds` (**two copies each**) now
+  reads the same span, and a NEW hook `sit_out.pb.js` re-runs the completeness
+  check when a SEAT changes. Without it the last owing player sitting out
+  writes no submission, so nothing those hooks watch ever fires and the round
+  stays open with nobody on screen to explain why. Flip 7 needs neither — its
+  client closes rounds explicitly.
+- Step 4 of `docs/SEATS_SPEC.md`. **The spec is now fully built.**
+
 ## v0.32.0
 
 - New: `maxPlayers` in `TableKitConfig`, and `full` / `maxPlayers` / `roomFor`

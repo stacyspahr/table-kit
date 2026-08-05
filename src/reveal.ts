@@ -23,7 +23,7 @@
 
 import type { Winner } from './config.js'
 import type { GameRec, GameState, PlayerRec, SubmissionRec, Tally } from './state.js'
-import { sumScores } from './state.js'
+import { owesIn, sumScores } from './state.js'
 import type { RoundRec } from './state.js'
 
 export interface RevealRow {
@@ -85,7 +85,7 @@ export function rowsForRound<G extends GameRec, S extends SubmissionRec>(
   )
 
   return state.players
-    .filter((p) => p.joined_round <= round.round_number)
+    .filter((p) => owesIn(p, round.round_number))
     .map((p) => {
       const b = before.get(p.id) ?? 0
       const delta = thisRound.get(p.id) ?? 0

@@ -62,9 +62,14 @@ export interface PlayerRec {
   /**
    * The first round this seat does NOT owe. Empty means still playing.
    *
-   * ⚠️ Written by nothing yet — step 4 of `docs/SEATS_SPEC.md`. The column
-   * exists early because it rode along with `handovers` rather than costing a
-   * second restart. Nothing reads it until the kit learns `owesIn`.
+   * Somebody goes to bed on hole four and nobody picks up their cards. Their
+   * total stands, their past rounds stand, they stay on the board — they simply
+   * stop being waited on, which is what unjams a table that would otherwise be
+   * owed from forever.
+   *
+   * ⚠️ Read it through {@link owesIn} and never directly. The same number is
+   * checked again by the server's round hooks, and a client that disagrees with
+   * them shows a table ready to score while the round never flips.
    */
   left_round?: number
 }
@@ -212,10 +217,35 @@ export function submittedThisRound<G extends GameRec, S extends SubmissionRec>(
 }
 
 /**
+ * Was this seat in play for round N — the span, both ends.
+ *
+ * ⚠️ THE ONE RULE, and it is read in three places that must agree: `waitingOn`
+ * here, `roundScope` in awards.ts, and `rowsForRound` in reveal.ts. They each
+ * had their own copy of the front edge before this existed, which was fine
+ * while there was only one edge to get wrong.
+ *
+ * ⚠️ `left_round` is the FIRST round they do not owe, not the last one they
+ * played. Stating it the other way makes every comparison here an off-by-one,
+ * and the same number is checked again by the server's round hooks — a client
+ * that disagrees with them shows a table ready to score while the round never
+ * flips.
+ *
+ * A seat sitting out keeps everything it already did. This decides what it
+ * OWES, and nothing else: its total stands, its past rounds stand, and it is
+ * still drawn on the board.
+ */
+export function owesIn(player: PlayerRec, roundNumber: number): boolean {
+  const left = player.left_round
+  return player.joined_round <= roundNumber && (!left || left > roundNumber)
+}
+
+/**
  * Who still owes a score this round — the list that creates social pressure.
  *
  * Unclaimed seats are counted like any other, which is what stops a phoneless
- * player being quietly forgotten.
+ * player being quietly forgotten. A seat sitting out is NOT counted — that is
+ * the whole point of it, and it is what unjams a table somebody walked away
+ * from.
  */
 export function waitingOn<G extends GameRec, S extends SubmissionRec>(
   state: GameState<G, S>,
@@ -223,9 +253,7 @@ export function waitingOn<G extends GameRec, S extends SubmissionRec>(
   const current = state.current
   if (!current) return []
   const done = submittedThisRound(state)
-  return state.players.filter(
-    (p) => !done.has(p.id) && p.joined_round <= current.round_number,
-  )
+  return state.players.filter((p) => !done.has(p.id) && owesIn(p, current.round_number))
 }
 
 export function submissionFor<G extends GameRec, S extends SubmissionRec>(

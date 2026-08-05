@@ -1,7 +1,7 @@
 # Table size and the span of a seat — spec
 
-**Status: steps 1–3 BUILT (v0.30.0, v0.31.0, v0.32.0); step 4 proposed.
-Written 2026-08-04 and mostly built the same day.**
+**Status: ALL FOUR STEPS BUILT — v0.30.0 · v0.31.0 · v0.32.0 · v0.33.0.
+Written, reordered and built 2026-08-04.**
 
 Three gaps, found by asking plain questions about a game night:
 
@@ -48,7 +48,7 @@ So the handover comes first, and it is nearly free.
 | Ceiling | `maxPlayers` + `seat_cap.pb.js`. Step 3, built in v0.32.0 — **and only Beat the Heat has one** |
 | Arriving late | `joined_round` on the seat. Fully handled |
 | Taking over a seat | `reclaimSeat({ takeOver })` — renames the seat and records it. Step 2, built in v0.31.0 |
-| Leaving | `left_round` **column exists** (rode along with step 2's migration) but nothing writes or reads it |
+| Leaving | `sitOut` / `sitBackIn` + `owesIn`. Step 4, built in v0.33.0 |
 | Removing a seat | `removeSeat`, **lobby only** — step 1, built in v0.30.0 |
 
 ### The jam
@@ -448,19 +448,40 @@ Also settled in the build:
   ceiling costs nothing at a family table; a transaction around every seat claim
   for a case that ends in "budge up" costs more than it saves.
 
-### 4. Sitting out
+### 4. ~~Sitting out~~ — **BUILT, v0.33.0, all three apps, 2026-08-04**
 
-`left_round`, `owesIn`, the three call sites, the sitting-out UI, and the
-round-close hooks re-checked.
+`owesIn` replaced the three copies of the front-edge test; the column was
+already there from step 2's migration, so no schema change was needed. Cold
+backup `pb_data.bak-2026-08-04-presitout`.
 
-> ⚠️ **The one step that can strand a live game.** A hook deciding "is every
-> seat final" has its own copy of this rule and **must** learn the same span, or
-> the client shows a table ready to score and the server never flips the round.
-> Wants a throwaway game on the box first, the way the `heat_*` hooks were
-> verified.
+⚠️ **The stall this spec warned about was real, and worse than written.** The
+warning said the round hooks carry their own copy of the rule — true, and it is
+**two copies each** in `nine_rounds` and `heat_rounds`, since the isolated
+runtimes cannot share a helper. But there was a second failure the spec missed
+entirely:
 
-Rarest of the three cases, and the only one with no workaround today — but the
-workaround for most of what it covers is step 2.
+> Both hooks watch the SUBMISSIONS collection. If the last seat still owing
+> **sits out** rather than handing in, no submission is written, so nothing
+> those hooks watch ever fires — and the round stays open with nobody on screen
+> to explain why. Exactly the jam this step exists to end, reintroduced by the
+> fix for it.
+
+So `sit_out.pb.js` re-runs the completeness check when a SEAT changes. Fail-open
+like `seat_cap.pb.js`: it runs after every write to a seat, and none of those
+may fail because bookkeeping threw.
+
+Flip 7 needed neither hook change — `flip7_rounds` has no auto-review, because
+that app's client closes a round explicitly.
+
+Also settled in the build:
+
+- **A round where NOBODY owes is not flipped.** Every seat sitting out means no
+  scores; closing it would post an empty round and deal the next one under
+  people who have all walked away. The table can end the game itself.
+- **The board shows neither tick for a seat sitting out.** An empty circle
+  beside somebody who has gone to bed reads as "still to hand in".
+- **Coming back moves `joined_round` to now**, so the rounds they missed stay
+  missed — decision D, as recommended.
 
 ---
 

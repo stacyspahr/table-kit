@@ -1,6 +1,6 @@
 # table-kit — spec sheet
 
-**v0.32.0 · 359 tests · `stacyspahr/table-kit` (public)**
+**v0.33.0 · 369 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
 [`TABLE_KIT_ARCHITECTURE.md`](TABLE_KIT_ARCHITECTURE.md);

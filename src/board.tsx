@@ -25,7 +25,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { lastHandover, type Standing } from './state.js'
+import { lastHandover, owesIn, type Standing } from './state.js'
 import type { PlayerRec } from './state.js'
 
 export function TableBoard({
@@ -33,6 +33,9 @@ export function TableBoard({
   done,
   format,
   emptyNote,
+  round,
+  sittingOutLabel = 'sitting out',
+  onPick,
 }: {
   /** From `standings` — already in board order, ties sharing a place. */
   standings: Standing[]
@@ -48,6 +51,26 @@ export function TableBoard({
   format: (score: number) => ReactNode
   /** Shown instead of the board before anybody has a total. */
   emptyNote?: ReactNode
+  /**
+   * The round in play. Supply it and seats that are sitting out are marked.
+   *
+   * ⚠️ The mark matters more than it looks. Without it a row with no tick reads
+   * as "still to hand in", so a table waits on somebody who went to bed — which
+   * is the exact confusion sitting out exists to end.
+   */
+  round?: number
+  /** What this game calls it. "sitting out", "out this hand". */
+  sittingOutLabel?: string
+  /**
+   * Makes the rows tappable. Omit and the board is a board.
+   *
+   * ⚠️ Only ever pass this from an explicit MODE the reader turned on. A tap on
+   * a name already means "that's me" on the claim screen and "enter for them"
+   * on the play screens; a third meaning on a board somebody is only reading
+   * is a mis-tap waiting to happen, and this one lands on a seat's standing in
+   * the game.
+   */
+  onPick?: (player: PlayerRec) => void
 }) {
   if (standings.length === 0) {
     return emptyNote ? <p className="fine">{emptyNote}</p> : null
@@ -57,16 +80,41 @@ export function TableBoard({
     <ul className="list tk-board">
       {standings.map((row) => (
         <li key={row.player.id}>
-          <span className="row">
+          {(() => {
+            const Row = onPick ? 'button' : 'span'
+            return (
+          <Row
+            className="row"
+            {...(onPick
+              ? {
+                  onClick: () => onPick(row.player),
+                  'aria-label': `Change ${row.player.display_name}'s seat`,
+                }
+              : {})}
+          >
             {/* The same two marks the play screens use. Not a spinner and not
                 a colour: this gets read across a table by somebody who is not
                 holding the phone. */}
             <span className="tk-board-tick" aria-hidden="true">
-              {done.has(row.player.id) ? '✓' : '○'}
+              {/* A seat that owes nothing gets neither mark. An empty circle
+                  beside somebody who has gone to bed reads as "still to hand
+                  in", which is the confusion this whole flag exists to end. */}
+              {round !== undefined && !owesIn(row.player, round)
+                ? ''
+                : done.has(row.player.id)
+                  ? '✓'
+                  : '○'}
             </span>
-            <span className="row-main">{row.player.display_name}</span>
+            <span className="row-main">
+              {row.player.display_name}
+              {round !== undefined && !owesIn(row.player, round) && (
+                <span className="pill">{sittingOutLabel}</span>
+              )}
+            </span>
             <span className="row-note">{format(row.score)}</span>
-          </span>
+          </Row>
+            )
+          })()}
         </li>
       ))}
     </ul>
