@@ -7,6 +7,25 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.30.0
+
+- New: `removeSeat` — take a seat away, **in the lobby only**. Somebody taps
+  the wrong name, or a seat gets added for a person who then turns up with
+  their own phone; until now there was no way to undo either, in any of the
+  three apps.
+- ⚠️ **It refuses once the game is active or finished, and that refusal is the
+  feature.** A seat's submissions relate to it, so deleting one mid-game
+  rewrites the night to say that player was never there: every closed round's
+  totals change, the share card loses a row, and their lifetime stats lose the
+  game. Somebody leaving mid-game is a real thing that needs a real answer —
+  `docs/SEATS_SPEC.md` designs it as a SPAN on the seat rather than the absence
+  of one — and it is deliberately not this function.
+- ⚠️ The status check is a **guard, not a gate**: the collection's `deleteRule`
+  is HOST with no status clause, so a host client can still delete a seat at any
+  point whatever the kit says. What stops that today is that nothing offers it.
+- Step 1 of `docs/SEATS_SPEC.md`, which is new in this release and specs the two
+  gaps behind it: nothing caps a table, and nobody can leave one.
+
 ## v0.29.0
 
 - New: `TakeSeat` — sitting down without leaving the screen you are on. The

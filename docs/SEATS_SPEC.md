@@ -1,6 +1,6 @@
 # Table size and the span of a seat — spec
 
-**Status: proposed, nothing built. Written 2026-08-04.**
+**Status: step 1 BUILT (v0.30.0); steps 2 and 3 proposed. Written 2026-08-04.**
 
 Two gaps found by asking two plain questions about a game night:
 
@@ -24,8 +24,8 @@ span (`joined_round`) and nothing else.
 | Floor | `minPlayers` in `TableKitConfig`, default 1. UI only — no hook checks it |
 | Ceiling | **Nothing** |
 | Arriving late | `joined_round` on the seat. Fully handled |
-| Leaving | **Nothing.** No delete, no flag, no UI, in the kit or in any app |
-| Removing a seat | **Nothing.** Not even in the lobby, before a card is dealt |
+| Leaving | **Nothing.** No flag, no UI, in the kit or in any app |
+| Removing a seat | `removeSeat`, **lobby only** — step 1, built in v0.30.0 |
 
 ### The jam
 
@@ -221,9 +221,22 @@ way a phoneless seat takes `NoPhone`. Each game owns its own sentence.
 
 Each step is shippable on its own and useful before the next one lands.
 
-1. **Remove a seat in the lobby.** A delete, guarded to `status === 'lobby'`.
-   No schema change, no kit change. Fixes the commonest annoyance — a seat
-   claimed by the wrong person before anything started.
+1. ~~**Remove a seat in the lobby.**~~ **BUILT — table-kit v0.30.0, all three
+   apps, 2026-08-04.** `removeSeat` in the kit, refusing on anything but
+   `lobby`. No schema change and no backend change was needed: all three
+   `*_players` collections already carry `deleteRule: HOST`.
+
+   Two things the build decided that this spec had not:
+   - **It is a MODE, not always-tappable rows.** A tap on a name already means
+     "that's me, I'll take that seat" on `SeatClaim`, and the `.row.tappable`
+     chevron already means "enter for somebody else". A third meaning on a bare
+     name row would be the same gesture with two opposite outcomes on screens a
+     minute apart. So the lobby list is unchanged until the host taps a quiet
+     "Take a seat away", which turns the rows into targets with a ✕ and a Done
+     button.
+   - **The confirm is `tone: 'normal'`, not `'danger'`.** Red would say this
+     costs something. In the lobby it costs a name and a seat order, and the
+     body text says so.
 2. **The ceiling.** `maxPlayers` + `lobbyState.full` + the claim UI + the three
    join hooks. Schema-free.
 3. **`left_round`.** The migration on three `*_players` collections, `owesIn`

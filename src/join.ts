@@ -200,6 +200,48 @@ export async function claimSeat({
 }
 
 /**
+ * Take a seat away again, before the game has started.
+ *
+ * ── Why a delete is right HERE and wrong everywhere else ─────────────────
+ * In the lobby a seat holds nothing. Nobody has scored, so removing one costs
+ * a name and a `seat_order`, and the commonest reason to want it is the
+ * commonest thing that goes wrong at this point in the evening — somebody
+ * tapped the wrong name, or a seat got added for a person who then turned up
+ * with their own phone.
+ *
+ * ⚠️ **Once a card has been dealt this is the wrong operation and it is not
+ * offered.** A seat's submissions relate to it, so deleting one mid-game
+ * rewrites the night to say that player was never there: every closed round's
+ * totals change, the share card loses a row, and their lifetime stats lose the
+ * game. Somebody leaving mid-game is a real thing that needs a real answer —
+ * see `docs/SEATS_SPEC.md`, where it is a SPAN on the seat rather than the
+ * absence of one — and it is deliberately not this function.
+ *
+ * ⚠️ **The status check here is a guard, not a gate.** The collection's
+ * `deleteRule` is HOST with no status clause, so a host client can delete a
+ * seat at any point in a game whatever this says. What stops that today is
+ * that nothing offers it; the rule itself is worth tightening to
+ * `game.status = "lobby"` when the seats migration next runs.
+ */
+export async function removeSeat<G extends GameRec>({
+  pb,
+  config,
+  game,
+  seat,
+}: {
+  pb: PocketBase
+  config: TableKitConfig
+  /** Read for its status. Passed whole so the caller cannot forget it. */
+  game: G
+  seat: PlayerRec
+}): Promise<void> {
+  if (game.status !== 'lobby') {
+    throw new Error('A seat can only be taken away before the game starts.')
+  }
+  await pb.collection(config.collections.players).delete(seat.id)
+}
+
+/**
  * Take back a seat that already exists.
  *
  * Two cases, one code path, deliberately. A returning player on a NEW phone

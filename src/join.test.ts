@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { bootstrapJoin, claimSeat, reclaimSeat } from './join.js'
+import { bootstrapJoin, claimSeat, reclaimSeat, removeSeat } from './join.js'
 import type { TableKitConfig } from './config.js'
 import type { PlayerRec } from './state.js'
 
@@ -41,6 +41,7 @@ function player(id: string, over: Partial<PlayerRec> = {}): PlayerRec {
 function fakePb(tables: Record<string, any>, authId = 'guest1') {
   const created: any[] = []
   const updated: any[] = []
+  const deleted: any[] = []
   const pb: any = {
     authStore: { record: { id: authId } },
     collection(name: string) {
@@ -62,10 +63,14 @@ function fakePb(tables: Record<string, any>, authId = 'guest1') {
           updated.push({ name, id, data })
           return { ...player(id), ...data }
         },
+        delete: async (id: string) => {
+          deleted.push({ name, id })
+          return true
+        },
       }
     },
   }
-  return { pb, created, updated }
+  return { pb, created, updated, deleted }
 }
 
 const game = { id: 'g1', join_token: 't', status: 'active', host_user: 'host1', created: '' }
@@ -299,5 +304,37 @@ describe('a seat for someone with no phone', () => {
     })
     await claimSeat({ pb, config, gameId: 'g1', deviceId: '', displayName: 'Nana', round: 1 })
     expect(created.map((c) => c.data.seat_order)).toEqual([1, 2])
+  })
+})
+
+describe('removeSeat', () => {
+  const seat = player('p1', { display_name: 'Nana' })
+
+  it('takes a seat away while the game is still in the lobby', async () => {
+    const { pb, deleted } = fakePb({})
+    await removeSeat({ pb, config, game: { ...game, status: 'lobby' }, seat })
+    expect(deleted).toEqual([{ name: 'nine_players', id: 'p1' }])
+  })
+
+  /**
+   * ⚠️ The one that matters. A seat's submissions relate to it, so deleting
+   * one mid-game rewrites the night to say that player was never there —
+   * every closed round's totals change and their lifetime stats lose the game.
+   * Leaving mid-game is a span on the seat, not the absence of one.
+   */
+  it('REFUSES once the game is active, and deletes nothing', async () => {
+    const { pb, deleted } = fakePb({})
+    await expect(
+      removeSeat({ pb, config, game: { ...game, status: 'active' }, seat }),
+    ).rejects.toThrow(/before the game starts/)
+    expect(deleted).toEqual([])
+  })
+
+  it('refuses on a finished game too', async () => {
+    const { pb, deleted } = fakePb({})
+    await expect(
+      removeSeat({ pb, config, game: { ...game, status: 'finished' }, seat }),
+    ).rejects.toThrow()
+    expect(deleted).toEqual([])
   })
 })

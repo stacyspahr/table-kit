@@ -1,6 +1,6 @@
 # table-kit — spec sheet
 
-**v0.29.0 · 328 tests · `stacyspahr/table-kit` (public)**
+**v0.30.0 · 331 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
 [`TABLE_KIT_ARCHITECTURE.md`](TABLE_KIT_ARCHITECTURE.md);
@@ -228,6 +228,7 @@ stats and wrong for a phone.
 
 | Export | Does |
 |---|---|
+| `removeSeat({ pb, config, game, seat })` | Take a seat away. **Lobby only** — see below |
 | `rememberSeat(appKey, seat)` | The phone records who sat down on it |
 | `recalledSeats(appKey)` | One-tap buttons for regulars on their usual handset |
 | `seatChoices({ roster, seated, recalled, query, limit })` | Returns `suggested`, `reclaimable`, `list`, `hiddenCount`, `searchable` |
@@ -236,6 +237,22 @@ stats and wrong for a phone.
 Best-effort: evicted storage degrades to the full list, never to a locked-out
 player. Anyone already sitting is dropped from the roster side, so a returning
 player takes their seat back rather than opening a second one.
+
+> ⚠️ **`removeSeat` is lobby-only, and the refusal is the feature.** A seat's
+> submissions relate to it, so deleting one mid-game rewrites the night to say
+> that player was never there — every closed round's totals change, the share
+> card loses a row, and their lifetime stats lose the game. Leaving mid-game is
+> a SPAN on the seat, not the absence of one: see
+> [`SEATS_SPEC.md`](SEATS_SPEC.md).
+>
+> The status check is a **guard, not a gate**. `deleteRule` is HOST with no
+> status clause, so a host client can delete a seat at any point whatever this
+> says; what stops it is that nothing offers it. Worth tightening to
+> `game.status = "lobby"` when the seats migration next runs.
+>
+> Call it with the **host** client. A guest may create and update a seat and
+> never remove one — the phone that walks off with a seat is not the one that
+> should be able to delete it.
 
 ### Session — `session.ts`
 
