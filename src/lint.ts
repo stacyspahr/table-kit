@@ -108,21 +108,79 @@ function classNameExpressions(code: string): string[] {
 }
 
 /**
- * Every string literal inside an expression, including the STATIC halves of a
- * template literal.
+ * Every string literal inside an expression that is plausibly a class name.
  *
- * The interpolated halves are dropped on purpose — see the note at the top.
+ * ⚠️ **A quoted string inside `${ … }` is not automatically a class**, and
+ * assuming it is produced seven false positives on Flip 7 in the first run of
+ * this check. Its card picker writes:
+ *
+ * ```tsx
+ * className={`key wide ${isOn(0, 'zero') ? 'on' : ''}`}
+ * ```
+ *
+ * `'on'` is a class. `'zero'` is an argument to a function that happens to sit
+ * inside the interpolation. Demanding a `.zero` rule is the kind of wrong that
+ * gets a check deleted rather than fixed, so the rule is:
+ *
+ * - outside a template literal, every quoted string counts — that covers
+ *   `{isMe ? 'row mine' : 'row'}` and `{cx(x, 'real-class')}` alike;
+ * - inside `${ … }`, only strings in a TERNARY BRANCH count, i.e. ones
+ *   directly after a `?` or a `:`. An argument sits after `(` or `,` and is
+ *   left alone.
+ *
+ * The residual error is a false NEGATIVE — a class built some way this cannot
+ * read goes unchecked. That is the right direction to be wrong in: a check
+ * that misses one thing still catches the other ten, and a check that cries
+ * wolf catches nothing because it gets switched off.
  */
 function stringLiterals(expr: string): string[] {
   const out: string[] = []
 
-  for (const m of expr.matchAll(/'([^']*)'|"([^"]*)"/g)) {
-    out.push(m[1] ?? m[2] ?? '')
-  }
+  // Blank out template literals as they are consumed, so the sweep afterwards
+  // sees only what was never inside one. Index-based rather than `replace`,
+  // which would mishandle two identical templates in one expression.
+  const chars = [...expr]
 
   for (const m of expr.matchAll(/`([^`]*)`/g)) {
-    // Everything outside `${ … }` is literal text.
-    out.push((m[1] ?? '').replace(/\$\{[^}]*\}/g, ' '))
+    const body = m[1] ?? ''
+
+    // Everything outside `${ … }` is literal class text.
+    out.push(body.replace(/\$\{[^}]*\}/g, ' '))
+
+    // Inside it, only the branches of a ternary.
+    for (const interp of body.matchAll(/\$\{([^}]*)\}/g)) {
+      for (const branch of (interp[1] ?? '').matchAll(/[?:]\s*(?:'([^']*)'|"([^"]*)")/g)) {
+        out.push(branch[1] ?? branch[2] ?? '')
+      }
+    }
+
+    for (let i = m.index; i < m.index + m[0].length; i++) chars[i] = ' '
+  }
+
+  const outsideTemplates = chars.join('')
+
+  /**
+   * ⚠️ The same distinction one level out. Flip 7's mode picker writes
+   * `className={mode === 'standard' ? 'on' : ''}` — `'on'` is the class and
+   * `'standard'` is what the condition compares against.
+   *
+   * So: if this expression has ternary branches, they ARE the classes and
+   * everything else in it is machinery. If it has none, it is something like
+   * `cx('one', 'two')` and every literal is a candidate.
+   *
+   * Detected by trying rather than by looking for a `?`, which would misread
+   * optional chaining and `??`.
+   */
+  const branches = [...outsideTemplates.matchAll(/[?:]\s*(?:'([^']*)'|"([^"]*)")/g)].map(
+    (m) => m[1] ?? m[2] ?? '',
+  )
+
+  if (branches.length) {
+    out.push(...branches)
+  } else {
+    for (const m of outsideTemplates.matchAll(/'([^']*)'|"([^"]*)"/g)) {
+      out.push(m[1] ?? m[2] ?? '')
+    }
   }
 
   return out

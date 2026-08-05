@@ -45,6 +45,24 @@ describe('classesInSource', () => {
     ])
   })
 
+  it('does NOT read a function argument inside an interpolation', () => {
+    // ⚠️ Flip 7's card picker, verbatim. This shape produced seven false
+    // positives in the first run of this check across the suite. `'on'` is a
+    // class; `'zero'` is an argument that happens to sit inside the `${}`, and
+    // demanding a `.zero` rule is how a check gets deleted rather than fixed.
+    expect(used("<button className={`key wide ${isOn(0, 'zero') ? 'on' : ''}`} />")).toEqual([
+      'key',
+      'on',
+      'wide',
+    ])
+  })
+
+  it('still reads arguments OUTSIDE a template, where they usually are classes', () => {
+    // `cx('a', 'b')` is the common helper shape, and there the arguments are
+    // exactly what we are looking for.
+    expect(used(`<div className={cx('one', 'two')} />`)).toEqual(['one', 'two'])
+  })
+
   it('reads several attributes in one file', () => {
     expect(used('<a className="one" /><b className="two" />')).toEqual(['one', 'two'])
   })
@@ -101,5 +119,23 @@ describe('the two sets together', () => {
     const src = classesInSource(`<div className="screen"><span className="row mine" /></div>`)
     const css = classesInStylesheet('.screen{}.row{}.row.mine{}')
     expect([...src].filter((c) => !css.has(c))).toEqual([])
+  })
+})
+
+describe('a condition is not a class', () => {
+  it('ignores what a ternary compares against', () => {
+    // ⚠️ Flip 7's mode picker, verbatim. `'on'` is the class; `'standard'` is
+    // the value the condition tests. Same distinction as the interpolation
+    // case, one level out.
+    expect([...classesInSource(`<button className={mode === 'standard' ? 'on' : ''} />`)]).toEqual([
+      'on',
+    ])
+  })
+
+  it('falls back to every literal when there is no ternary at all', () => {
+    expect([...classesInSource(`<div className={cx('one', 'two')} />`)].sort()).toEqual([
+      'one',
+      'two',
+    ])
   })
 })
