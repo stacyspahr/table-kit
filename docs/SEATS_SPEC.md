@@ -1,19 +1,42 @@
 # Table size and the span of a seat — spec
 
-**Status: step 1 BUILT (v0.30.0); steps 2 and 3 proposed. Written 2026-08-04.**
+**Status: step 1 BUILT (v0.30.0); steps 2–4 proposed. Written 2026-08-04,
+reordered the same day.**
 
-Two gaps found by asking two plain questions about a game night:
+Three gaps, found by asking plain questions about a game night:
 
 1. **Can it stop too many people sitting down?** No. Nothing anywhere caps a
    table — not `TableKitConfig`, not any app, not any join hook. A phone
    holding the QR can keep making seats until the box's own limit is a memory.
-2. **Can somebody leave?** No, and mid-game that jams the table — see
-   [The jam](#the-jam). Somebody going home on hole four is an ordinary game
-   night, and the suite has no answer for it.
+2. **Can somebody hand their seat to somebody else?** Mechanically yes, and
+   nothing says so. The board keeps the first person's name for the rest of the
+   night.
+3. **Can somebody leave?** No, and mid-game that jams the table — see
+   [The jam](#the-jam).
 
-They are one spec because they are the same fact from two ends: **a table has a
-size, and a seat has a span.** The kit already models the front edge of that
-span (`joined_round`) and nothing else.
+They are one spec because they are the same fact from three angles: **a table
+has a size, and a seat has a span and an occupant.** The kit models the front
+edge of the span (`joined_round`) and nothing else.
+
+## ⚠️ The reordering, and why
+
+This document originally treated **leaving** as the main event and the handover
+as a footnote. That is backwards for the tables these apps are actually used at.
+
+> *"Dad was playing and then needed to go check on the kids, and Mom wanted to
+> jump in and finish the game."*
+
+That is not somebody leaving. That is a seat **changing hands**, and it is the
+commoner shape by a distance at a family table — because a game in progress has
+a chair, a pile of cards and a running total sitting at it, and the natural
+thing is for somebody to pick them up.
+
+It also matters because a handover **keeps the round moving**: the seat never
+stops owing, so none of [the jam](#the-jam) happens. Sitting out is only needed
+when nobody replaces them — four playing, one goes to bed, three carry on. Real,
+but rarer, and the most complicated thing here.
+
+So the handover comes first, and it is nearly free.
 
 ---
 
@@ -24,6 +47,7 @@ span (`joined_round`) and nothing else.
 | Floor | `minPlayers` in `TableKitConfig`, default 1. UI only — no hook checks it |
 | Ceiling | **Nothing** |
 | Arriving late | `joined_round` on the seat. Fully handled |
+| Taking over a seat | `reclaimSeat` moves it to a new phone. **The name never changes, and no screen admits the case exists** |
 | Leaving | **Nothing.** No flag, no UI, in the kit or in any app |
 | Removing a seat | `removeSeat`, **lobby only** — step 1, built in v0.30.0 |
 
@@ -46,7 +70,111 @@ did not play.
 
 ---
 
-## Part 1 — the ceiling
+## Part 1 — the handover
+
+### What already works, and it is most of it
+
+`reclaimSeat` updates the seat's `device_id` and `guest`. Michelle scans the
+QR, sees the "Already sitting" list, taps Dad's name, confirms — and the seat
+moves to her phone with its whole history attached, because submissions relate
+to the **seat**, not to a person. A seat is a chair with a running total.
+
+Two things are wrong with it, and they are different sizes.
+
+### The small one: the words are written for a different situation
+
+The confirm currently says:
+
+> That seat is already on someone's phone. **If it's yours**, take it back —
+> your score comes with you.
+
+That is the *recovery* case: you, on a new phone, or after your storage was
+wiped. Michelle reading *"Play as Dad?"* and *"if it's yours"* would reasonably
+conclude she is doing something wrong. The mechanism supports a handover; no
+screen admits it exists.
+
+### The real one: the name never changes
+
+For the rest of the night the board says Dad, and the share card credits Dad
+with a game Michelle finished.
+
+> ⚠️ **Renaming is not free either, and there is no option that is.** Rename to
+> Michelle and holes 1–4 now sit under her name; keep Dad and holes 5–9 sit
+> under his. The seat is one running total and the board has one name column.
+> Something is going to be slightly wrong, so the question is only which
+> wrongness is more useful — and what gets recorded so neither is a lie.
+
+### The decision
+
+**Rename the seat, and keep the handover as a fact.**
+
+The live board's job is to tell the table who is holding the cards *right now*.
+After hole five that is Michelle, so the row says Michelle. The seat remembers
+where it came from, so history and the share card can say
+
+> Michelle took over from Dad on hole 5
+
+on a screen that has room for a sentence, rather than squeezing
+"Michelle (for Dad)" into a name column on every phone for the rest of the
+night.
+
+### The shape
+
+```
+handovers   JSON, on the seat.   [{ from: "Dad", round: 5 }]
+```
+
+An **array**, because a seat can change hands more than once — Dad hands it to
+Michelle, Dad comes back on hole seven. A single pair of fields cannot say that
+and would have to be replaced the first time it happened.
+
+Additive and nullable, so nothing reads it until the client does. No hook
+touches it.
+
+### The flow, and why it must ask
+
+The app cannot tell Dad-on-a-new-phone from Michelle-taking-over. Only the
+person holding the phone knows, so the confirm asks — one extra tap, on the
+rarest screen in the app:
+
+```
+Play as Dad?
+Dad's score so far comes with the seat.
+
+[ It's me — this is my phone now ]   → reclaimSeat. No rename. Today's behavior.
+[ Someone else is taking over ]      → name picker → reclaim + rename + log
+```
+
+The first button is the existing behavior and stays the default-looking one:
+recovery is the commoner reason to be on this screen at all, and it must not
+get slower to make room for the rarer case.
+
+The second leads to the same name picker `SeatClaim` already draws — one tap
+for anyone on the roster.
+
+### The sharp bit: `roster_entry`
+
+`roster_entry` is the durable identity, and it is what a future lifetime-stats
+screen will count games against.
+
+- If it moves to Michelle, Dad's record loses a game he played most of.
+- If it stays with Dad, Michelle's record never shows the game she finished.
+
+**Recommend: it moves, matching the name.** One seat, one current occupant, and
+the display and the identity should not disagree. The `handovers` log is what
+preserves the option of apportioning it properly later — **do not build the
+apportioning now.** Lifetime stats do not exist yet, so this decision is cheap
+today and expensive to revisit once they do; the log is the cheap insurance.
+
+### Who may do it
+
+Nobody new. This is the existing `reclaimSeat` path with better words — any
+phone that can scan the QR can already do it, which is right, because the
+person handing over usually walks off without touching anything.
+
+---
+
+## Part 2 — the ceiling
 
 ### The knob
 
@@ -68,6 +196,25 @@ that knew Flip 7 seats twelve would be a kit that knew the games.
   maxPlayers?: number,
   roomFor: number }     // seats left, Infinity when uncapped
 ```
+
+### What the lobby should SHOW
+
+> ⚠️ **Not a range, and above all not a fraction.** "4 of 10" reads as progress
+> toward ten — a table of four who are all present would look six people short,
+> which is the exact opposite of informative. A static "2–10" is no better: it
+> is chrome that earns its place about twice a night.
+
+The floor is already answered twice over — the start button says "Needs 1 more"
+and then stops being disabled. So:
+
+- **Normally:** the plain count, as now. *At the table 4*.
+- **At the cap:** the count line says **Table full**. That is a fact that
+  *changed*, which is what makes it worth the space.
+- **"2 seats left" in between:** defensible, deliberately not recommended for a
+  first cut. Ship without it and see whether anybody misses it.
+
+The person who most needs to know is whoever is scanning into a full table, and
+they are told on their own screen.
 
 ### Enforced in two places, and only one of them is a gate
 
@@ -93,6 +240,10 @@ through, and returns a plain refusal. Notes on doing it correctly:
   filled behind you is the worst possible failure here.
 - The refusal belongs at claim time as well as at join time. Joining is not
   sitting down — a spectator holding the QR has a credential and no seat.
+- ⚠️ **A handover must never be refused for fullness.** Taking over an existing
+  seat does not add one. If the check is written against "is this phone allowed
+  in" rather than "is a new seat being created", a full table becomes a table
+  nobody can hand a seat over at — which is precisely when they want to.
 
 > ⚠️ **The race is real and must lose gracefully.** Six people scan at once at
 > a table with two seats left. `claimSeat` already walks `seat_order` past
@@ -108,7 +259,10 @@ limit is about chairs. `AddSeat` refuses at the same number.
 
 ---
 
-## Part 2 — leaving
+## Part 3 — sitting out
+
+Only for the case Part 1 does not cover: somebody leaves and **nobody takes the
+seat**. If anyone picks it up, none of this is needed.
 
 ### Not a delete
 
@@ -118,9 +272,8 @@ rewrite the night's history to say somebody was never there — every closed
 round's totals change, the share card loses a row, and lifetime stats lose the
 games they played.
 
-**In the lobby, before a card is dealt, a delete is correct** and should be
-offered: nothing has been scored, and a seat claimed by mistake is just a
-mistake. That is a different, smaller feature and can ship first.
+**In the lobby, before a card is dealt, a delete is correct** — that is step 1,
+already built as `removeSeat`.
 
 ### The shape: `left_round`
 
@@ -187,16 +340,15 @@ not a design.
 last game is, by the plainest reading, not at the next one. **Recommend: drop
 seats with `left_round` set**, and let them rejoin by scanning like anyone
 else — the roster still knows them, so it is one tap.
+⚠️ It should NOT drop a seat that was handed over. That seat has somebody in it.
 
 **D. Can they come back?**
 Clearing `left_round` is the obvious undo and costs nothing to allow — but a
 seat that left on round 3 and returned on round 6 owes nothing for 3–5, and a
 single pair of numbers cannot say that. **Recommend: coming back means taking
 the seat again via `reclaimSeat`, which sets `joined_round` to the current
-round and clears `left_round`.** Their earlier rounds keep their scores; the
-gap in the middle is simply rounds they did not owe. One span per seat, and if
-somebody manages to leave and return twice in a night, the second return is the
-same operation again.
+round and clears `left_round`** — the same operation as a handover, which is
+what it is when somebody else does it.
 
 ### Who may do it
 
@@ -219,35 +371,59 @@ way a phoneless seat takes `NoPhone`. Each game owns its own sentence.
 
 ## Build order
 
-Each step is shippable on its own and useful before the next one lands.
+Ordered by *what a table hits most often*, not by what is most interesting to
+build. Each step ships on its own and is useful before the next one lands.
 
-1. ~~**Remove a seat in the lobby.**~~ **BUILT — table-kit v0.30.0, all three
-   apps, 2026-08-04.** `removeSeat` in the kit, refusing on anything but
-   `lobby`. No schema change and no backend change was needed: all three
-   `*_players` collections already carry `deleteRule: HOST`.
+### 1. ~~Remove a seat in the lobby~~ — **BUILT, v0.30.0, all three apps**
 
-   Two things the build decided that this spec had not:
-   - **It is a MODE, not always-tappable rows.** A tap on a name already means
-     "that's me, I'll take that seat" on `SeatClaim`, and the `.row.tappable`
-     chevron already means "enter for somebody else". A third meaning on a bare
-     name row would be the same gesture with two opposite outcomes on screens a
-     minute apart. So the lobby list is unchanged until the host taps a quiet
-     "Take a seat away", which turns the rows into targets with a ✕ and a Done
-     button.
-   - **The confirm is `tone: 'normal'`, not `'danger'`.** Red would say this
-     costs something. In the lobby it costs a name and a seat order, and the
-     body text says so.
-2. **The ceiling.** `maxPlayers` + `lobbyState.full` + the claim UI + the three
-   join hooks. Schema-free.
-3. **`left_round`.** The migration on three `*_players` collections, `owesIn`
-   in the kit, the three call sites, the sitting-out UI, and the round hooks
-   re-checked — a hook that decides "is every seat final" has its own copy of
-   this rule and **must** learn the same span, or the client shows a table
-   ready to score and the server never flips the round.
+`removeSeat` in the kit, refusing on anything but `lobby`. No schema change and
+no backend change was needed: all three `*_players` collections already carry
+`deleteRule: HOST`.
 
-> ⚠️ Step 3 touches the round-close hooks. That is the one part of this that
-> can strand a live game, so it wants a throwaway game on the box before it
-> goes near a real night — the same way the `heat_*` hooks were verified.
+Two things the build decided that this spec had not:
+
+- **It is a MODE, not always-tappable rows.** A tap on a name already means
+  "that's me, I'll take that seat" on `SeatClaim`, and the `.row.tappable`
+  chevron already means "enter for somebody else". A third meaning on a bare
+  name row would be the same gesture with two opposite outcomes on screens a
+  minute apart. So the lobby list is unchanged until the host taps a quiet
+  "Take a seat away", which turns the rows into targets with a ✕ and a Done
+  button.
+- **The confirm is `tone: 'normal'`, not `'danger'`.** Red would say this costs
+  something. In the lobby it costs a name and a seat order, and the body says so.
+
+### 2. The handover — **next**
+
+The two-button confirm, the rename, and the `handovers` field. One additive
+migration on three `*_players` collections and **no hook logic changes at all**,
+which makes it the lowest-risk backend trip of the three remaining steps.
+
+Commonest of the three cases, and it is mostly wording on top of a mechanism
+that already works.
+
+> If step 4 is likely to follow soon, add `left_round` in **this** migration and
+> leave it unread until then. One trip to the box instead of two, and an unread
+> nullable column costs nothing.
+
+### 3. The ceiling
+
+`maxPlayers`, `lobbyState.full`, the claim UI, the lobby's "Table full" line,
+and the three join hooks. Schema-free, but it changes hook **logic**, so it
+carries more risk than step 2 despite touching no columns.
+
+### 4. Sitting out
+
+`left_round`, `owesIn`, the three call sites, the sitting-out UI, and the
+round-close hooks re-checked.
+
+> ⚠️ **The one step that can strand a live game.** A hook deciding "is every
+> seat final" has its own copy of this rule and **must** learn the same span, or
+> the client shows a table ready to score and the server never flips the round.
+> Wants a throwaway game on the box first, the way the `heat_*` hooks were
+> verified.
+
+Rarest of the three cases, and the only one with no workaround today — but the
+workaround for most of what it covers is step 2.
 
 ---
 
