@@ -7,6 +7,34 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.32.0
+
+- New: `maxPlayers` in `TableKitConfig`, and `full` / `maxPlayers` / `roomFor`
+  on `LobbyState`. `SeatClaim` and `TakeSeat` refuse a new chair at a full
+  table; `TakeSeat` goes dead and says why rather than vanishing, because a
+  control that disappears reads as a bug in the app instead of a fact about the
+  table.
+- ⚠️ **Absent is the COMMON case, not the fallback.** Of the three games in the
+  suite only Beat the Heat has a hard ceiling (*"two to ten"*, off the box).
+  Flip 7's twelve is where one deck runs out — the rulebook says shuffle in a
+  second — and Play Nine's says outright that a big table is no problem. A cap
+  invented for tidiness refuses a real game somebody is sitting down to play.
+- ⚠️ **A handover is never refused for fullness.** Taking over an existing seat
+  adds no chair, and a full table is exactly when somebody wants to hand theirs
+  on. `full` hides the new-seat paths only; the server draws the same line by
+  guarding creates and never updates. A test pins it — the first cut got this
+  wrong and hid the name list mid-handover.
+- `lobbyState(seated, config, game?)` — the GAME's own `max_players` wins over
+  the config's. That snapshot is what the server refuses on, so reading the
+  config instead would put a different number in the message than in the gate.
+  A game dealt before the column existed is correctly uncapped.
+- ⚠️ Needs `max_players` on the games collections: migrations
+  `1786200000`–`1786200002`, plus `pb_hooks/seat_cap.pb.js`, applied
+  2026-08-04. The hook is **fail-open by construction** — the whole check sits
+  inside one `try` and only a deliberate throw refuses a seat, because a broken
+  check must degrade to "no ceiling" rather than to "nobody can sit down".
+- Step 3 of `docs/SEATS_SPEC.md`.
+
 ## v0.31.0
 
 - `reclaimSeat` takes an optional `takeOver` — somebody ELSE is picking these

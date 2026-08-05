@@ -428,6 +428,43 @@ describe('taking a seat', () => {
     })
   })
 
+  describe('a full table', () => {
+    const dad = seat('p1', { display_name: 'Dad', device_id: 'dads-phone' })
+
+    it('says so instead of offering a name to claim', () => {
+      render(<SeatClaim {...base} full roster={[{ id: 'r1', display_name: 'Ann' }]} />)
+      expect(screen.getByText('This table is full')).toBeTruthy()
+      expect(screen.queryByText("I'm Ann")).toBeNull()
+      expect(screen.queryByText('Type your name')).toBeNull()
+    })
+
+    /**
+     * ⚠️ A handover adds no chair, so a full table is exactly when somebody
+     * wants to hand theirs over. The server draws the same line — it guards
+     * creates and never updates.
+     */
+    it('STILL lets a seat be taken over', () => {
+      render(<SeatClaim {...base} full players={[dad]} />)
+      fireEvent.click(screen.getByText('Dad'))
+      expect(screen.getByText('Someone else is taking over')).toBeTruthy()
+    })
+
+    it('offers the name list again once a handover is under way', () => {
+      render(
+        <SeatClaim {...base} full players={[dad]} roster={[{ id: 'r1', display_name: 'Ann' }]} />,
+      )
+      fireEvent.click(screen.getByText('Dad'))
+      fireEvent.click(screen.getByText('Someone else is taking over'))
+      expect(screen.queryByText('This table is full')).toBeNull()
+      expect(screen.getByText('Ann')).toBeTruthy()
+    })
+
+    it('takes the game\'s own words for it', () => {
+      render(<SeatClaim {...base} full fullNote="Beat the Heat seats ten." />)
+      expect(screen.getByText('Beat the Heat seats ten.')).toBeTruthy()
+    })
+  })
+
   it('marks which seats have nobody holding them', () => {
     render(
       <SeatClaim

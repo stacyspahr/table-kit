@@ -172,3 +172,20 @@ describe('TakeSeat', () => {
     expect(onReclaim).not.toHaveBeenCalled()
   })
 })
+
+describe('TakeSeat at a full table', () => {
+  it('goes dead and says why, rather than vanishing', () => {
+    // A control that disappears reads as a bug in the app. This is a fact
+    // about the table, and the host has to be able to find it out.
+    setup({ full: true })
+    expect(screen.getByText('This table is full')).toBeTruthy()
+    expect(screen.queryByText('Take a seat')).toBeNull()
+  })
+
+  it('cannot be opened', async () => {
+    const onOpen = vi.fn()
+    setup({ full: true, onOpen })
+    fireEvent.click(screen.getByText('This table is full'))
+    await waitFor(() => expect(onOpen).not.toHaveBeenCalled())
+  })
+})

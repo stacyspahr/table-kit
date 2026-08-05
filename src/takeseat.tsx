@@ -53,7 +53,9 @@ export function TakeSeat<R extends SeatCandidate, S extends SeatedLike>({
   onOpen,
   onClaim,
   onReclaim,
+  full,
   label = 'Take a seat',
+  fullLabel = 'This table is full',
   openingLabel = 'One moment…',
   heading,
   className = 'btn big primary',
@@ -80,6 +82,16 @@ export function TakeSeat<R extends SeatCandidate, S extends SeatedLike>({
   onReclaim: (seat: S) => Promise<void>
   /** The game's wording for the act. "Take a seat", "Play this one too". */
   label?: string
+  /**
+   * No room for another chair. From `lobbyState(...).full`.
+   *
+   * The button stays on screen and goes dead rather than disappearing: a host
+   * looking for the way to sit down needs to find out the table is full, and a
+   * control that vanishes reads as a bug in the app rather than a fact about
+   * the table.
+   */
+  full?: boolean
+  fullLabel?: string
   openingLabel?: string
   /** Optional line above the choices, once the panel is open. */
   heading?: ReactNode
@@ -176,8 +188,8 @@ export function TakeSeat<R extends SeatCandidate, S extends SeatedLike>({
     return (
       <>
         {failed && <p className="error">{failed}</p>}
-        <button className={className} disabled={opening} onClick={begin}>
-          {opening ? openingLabel : label}
+        <button className={className} disabled={opening || full} onClick={begin}>
+          {full ? fullLabel : opening ? openingLabel : label}
         </button>
       </>
     )

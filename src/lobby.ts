@@ -21,6 +21,12 @@ export interface LobbyState {
   /** The floor actually in force, after the default. */
   minPlayers: number
   seated: number
+  /** No room for another chair. Always false when there is no ceiling. */
+  full: boolean
+  /** The ceiling actually in force, or undefined when there isn't one. */
+  maxPlayers?: number
+  /** Chairs left. **`Infinity` when uncapped** — check `full`, not this. */
+  roomFor: number
 }
 
 /**
@@ -33,10 +39,40 @@ export interface LobbyState {
  * every app relied on before this existed, expressed as a rule instead of as a
  * `players.length === 0` check copied into each of them.
  */
-export function lobbyState(seated: number, config: TableKitConfig): LobbyState {
+export function lobbyState(
+  seated: number,
+  config: TableKitConfig,
+  game?: { max_players?: number },
+): LobbyState {
   const minPlayers = Math.max(1, config.minPlayers ?? 1)
   const shortBy = Math.max(0, minPlayers - seated)
-  return { canStart: shortBy === 0, shortBy, minPlayers, seated }
+
+  /**
+   * The GAME's ceiling wins over the config's.
+   *
+   * ⚠️ The one in force is the one that was snapshotted onto the game when it
+   * was dealt, because that is also the number the server refuses on. Reading
+   * the config here instead would let a cap edited between two game nights
+   * change a table mid-evening, and — worse — put a different number in the
+   * message than in the gate. This codebase has been bitten by exactly that
+   * shape before: a label that says one thing beside a check that allows
+   * another is how the label starts lying.
+   *
+   * A game dealt before the column existed reports nothing, and is correctly
+   * uncapped: it was dealt under no ceiling and it keeps none.
+   */
+  const raw = game?.max_players ?? config.maxPlayers
+  const maxPlayers = typeof raw === 'number' && raw > 0 ? raw : undefined
+
+  return {
+    canStart: shortBy === 0,
+    shortBy,
+    minPlayers,
+    seated,
+    maxPlayers,
+    full: maxPlayers !== undefined && seated >= maxPlayers,
+    roomFor: maxPlayers === undefined ? Infinity : Math.max(0, maxPlayers - seated),
+  }
 }
 
 /**

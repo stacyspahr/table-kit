@@ -54,6 +54,25 @@ export interface TableKitConfig {
    */
   minPlayers?: number
   /**
+   * Most seats a table may hold. Absent means **no ceiling**, and that is the
+   * common case rather than the fallback.
+   *
+   * ⚠️ Only set this where the BOX sets it. Of the three games in the suite
+   * exactly one has a hard limit:
+   *
+   * - **Beat the Heat** — two to ten. A real ceiling, straight off the box.
+   * - **Flip 7** — three to twelve, but the rulebook says past twelve you
+   *   shuffle in a second deck. Twelve is where one deck runs out, not where
+   *   the game stops, so capping there would have the app overruling the box
+   *   at a table that has two decks on it.
+   * - **Play Nine** — no limit. Eight cards a hole out of 108; the rulebook
+   *   says a big table is no problem.
+   *
+   * A cap invented for tidiness is a cap that refuses a real game somebody is
+   * sitting down to play.
+   */
+  maxPlayers?: number
+  /**
    * Backend origin. **Required, and never defaulted.**
    *
    * The platform convention is that frontends read this from `VITE_PB_URL` and

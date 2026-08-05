@@ -1,7 +1,7 @@
 # Table size and the span of a seat — spec
 
-**Status: steps 1 and 2 BUILT (v0.30.0, v0.31.0); steps 3 and 4 proposed.
-Written 2026-08-04, reordered and half-built the same day.**
+**Status: steps 1–3 BUILT (v0.30.0, v0.31.0, v0.32.0); step 4 proposed.
+Written 2026-08-04 and mostly built the same day.**
 
 Three gaps, found by asking plain questions about a game night:
 
@@ -45,7 +45,7 @@ So the handover comes first, and it is nearly free.
 | | |
 |---|---|
 | Floor | `minPlayers` in `TableKitConfig`, default 1. UI only — no hook checks it |
-| Ceiling | **Nothing** |
+| Ceiling | `maxPlayers` + `seat_cap.pb.js`. Step 3, built in v0.32.0 — **and only Beat the Heat has one** |
 | Arriving late | `joined_round` on the seat. Fully handled |
 | Taking over a seat | `reclaimSeat({ takeOver })` — renames the seat and records it. Step 2, built in v0.31.0 |
 | Leaving | `left_round` **column exists** (rode along with step 2's migration) but nothing writes or reads it |
@@ -414,11 +414,39 @@ What the build settled that this spec had left open:
   copies of the same sentence across three apps. It renders on the end-of-game
   and results screens, where there is room for a sentence.
 
-### 3. The ceiling
+### 3. ~~The ceiling~~ — **BUILT, v0.32.0, all three apps, 2026-08-04**
 
-`maxPlayers`, `lobbyState.full`, the claim UI, the lobby's "Table full" line,
-and the three join hooks. Schema-free, but it changes hook **logic**, so it
-carries more risk than step 2 despite touching no columns.
+⚠️ **The rulebooks changed this step's shape, and it is the finding worth
+keeping.** Reading them rather than assuming a cap:
+
+| | |
+|---|---|
+| Beat the Heat | *"Two to ten players"* — a real ceiling. **Set to 10.** |
+| Flip 7 | *"Three to twelve players and the 108-card deck — past twelve the box recommends shuffling in a second one."* Twelve is where one DECK runs out, not where the game stops. **No cap** — refusing a thirteenth player at a table with two decks out would be the app overruling the box. |
+| Play Nine | *"two or more players… a big table is no problem."* **No cap.** |
+
+So the mechanism is the kit's and the number is the box's, and two of three
+games correctly have none. That is why `maxPlayers` is optional rather than
+defaulted: **a cap invented for tidiness refuses a real game.**
+
+Also settled in the build:
+
+- **Not a join-hook check, an `onRecordCreateRequest` guard on the players
+  collections.** Joining is not sitting down, and the seat is created by a
+  direct write the join hook never sees. One hook file covers all three, since
+  the games collection is derivable from the players one.
+- **Fail-open by construction.** The whole check sits inside one `try` and only
+  a deliberate throw refuses a seat. This hook stands in front of every seat
+  claim in three live apps; a wrong method name after a PocketBase upgrade,
+  thrown loose, would first be discovered by a room full of people who cannot
+  start their game.
+- **`max_players` is snapshotted onto the game**, not read from config at
+  display time, so the number in the message and the number in the gate cannot
+  drift. It also means tonight's game keeps the ceiling it was dealt under.
+- **Best-effort against a simultaneous scan.** Count-then-create is not atomic,
+  so two phones claiming the last chair together can both pass. One over a soft
+  ceiling costs nothing at a family table; a transaction around every seat claim
+  for a case that ends in "budge up" costs more than it saves.
 
 ### 4. Sitting out
 

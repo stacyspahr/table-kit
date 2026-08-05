@@ -610,6 +610,8 @@ export function SeatClaim({
   onClaim,
   onReclaim,
   brand,
+  full,
+  fullNote,
 }: {
   appKey: string
   players: PlayerRec[]
@@ -630,6 +632,20 @@ export function SeatClaim({
     takeOver?: { displayName: string; rosterEntry?: string },
   ) => Promise<void>
   brand?: ReactNode
+  /**
+   * No room for another chair. From `lobbyState(...).full`.
+   *
+   * ⚠️ Hides the way to make a NEW seat and nothing else. Taking over one that
+   * already exists stays open, because a handover adds no chair — and a full
+   * table is exactly when somebody wants to hand theirs over. The server draws
+   * the same line: it guards creates, never updates.
+   *
+   * ⚠️ Not the gate either. The real refusal is server-side; this is how the
+   * table finds out, which is a different job and still worth doing.
+   */
+  full?: boolean
+  /** What a full table says. The game's words, since it knows its own box. */
+  fullNote?: ReactNode
 }) {
   const [typing, setTyping] = useState(false)
   const [name, setName] = useState('')
@@ -770,7 +786,18 @@ export function SeatClaim({
         brand
       )}
 
-      {!typing && (suggested.length > 0 || (!handingOver && reclaimable.length > 0)) && (
+      {full && !handingOver && (
+        <section className="card">
+          <h2>This table is full</h2>
+          <p className="fine">
+            {fullNote ?? 'Every chair is taken. Somebody at the table can hand you theirs.'}
+          </p>
+        </section>
+      )}
+
+      {(!full || handingOver) &&
+        !typing &&
+        (suggested.length > 0 || (!handingOver && reclaimable.length > 0)) && (
         <section className="card">
           {failed && <p className="error">{failed}</p>}
           {/* Not while a seat is being handed over. These offer to take a
@@ -807,7 +834,7 @@ export function SeatClaim({
         </section>
       )}
 
-      {!typing && (list.length > 0 || searchable) && (
+      {(!full || handingOver) && !typing && (list.length > 0 || searchable) && (
         <section className="card">
           {(suggested.length > 0 || reclaimable.length > 0) && <h2>Or someone else</h2>}
           {failed && suggested.length === 0 && reclaimable.length === 0 && (
@@ -850,7 +877,7 @@ export function SeatClaim({
         </section>
       )}
 
-      {typing ? (
+      {full && !handingOver ? null : typing ? (
         <section className="card">
           <label>
             Your name
