@@ -40,6 +40,18 @@ export interface Actions<G extends GameRec, S extends SubmissionRec> {
     score: number
     /** `false` autosaves a draft; `true` hands the round in. */
     final: boolean
+    /**
+     * A game's own intermediate state, when it has one. Wins over `final`.
+     *
+     * ⚠️ Must be declared HERE and not only on the implementation: this
+     * interface is the exported type, so an option the implementation accepts
+     * and this does not is an option no caller can pass.
+     *
+     * See the note on the implementation in `createActions` for what it is
+     * for, and {@link isAnswer} for why anything other than `final` is not an
+     * answer.
+     */
+    status?: SubmissionStatus
   }): void
   /** The idempotency key for one seat's entry in one round. */
   entryKey(roundId: string, playerId: string): string

@@ -128,3 +128,71 @@ describe('starting the game', () => {
     expect(guest.writes).toHaveLength(0)
   })
 })
+
+/**
+ * `save` with a game's own intermediate status.
+ *
+ * ⚠️ This is as much a TYPE test as a behaviour one, and the type half is the
+ * half that actually broke. `status` was added to the implementation's inline
+ * options but not to the exported `Actions` interface — and since the interface
+ * is what callers see, the option existed and no caller could pass it. The
+ * build was green either way; only a call site found it.
+ */
+describe('save with an intermediate status', () => {
+  function harness() {
+    const writes: Array<{ coll: string; key: string; data: Record<string, unknown> }> = []
+    const queue = {
+      upsert: (coll: string, key: string, data: Record<string, unknown>) =>
+        writes.push({ coll, key, data }),
+      add: () => {},
+      flush: async () => {},
+      destroy: () => {},
+    } as unknown as Queue
+    const actions = createActions({
+      pb: {} as unknown as PocketBase,
+      config,
+      queue,
+    })
+    const round = { id: 'r1', game: 'g1', round_number: 1, status: 'open' as const }
+    const player = {
+      id: 'p1',
+      game: 'g1',
+      display_name: 'Ada',
+      seat_order: 0,
+      device_id: '',
+      guest: '',
+      roster_entry: '',
+      joined_round: 1,
+    }
+    return { actions, writes, round, player }
+  }
+
+  it('writes the status it was given, over final', () => {
+    const { actions, writes, round, player } = harness()
+    actions.save({
+      round,
+      player,
+      submittedBy: player,
+      payload: { bid: 2 },
+      score: 0,
+      final: false,
+      status: 'bid',
+    })
+    expect(writes[0]?.data.status).toBe('bid')
+    expect(writes[0]?.data.bid).toBe(2)
+  })
+
+  it('still honours final when no status is given', () => {
+    const { actions, writes, round, player } = harness()
+    actions.save({ round, player, submittedBy: player, payload: {}, score: 13, final: true })
+    expect(writes[0]?.data.status).toBe('final')
+  })
+
+  it('keys the row by round and player, so a bid and its result are one row', () => {
+    const { actions, writes, round, player } = harness()
+    actions.save({ round, player, submittedBy: player, payload: {}, score: 0, final: false, status: 'bid' })
+    actions.save({ round, player, submittedBy: player, payload: {}, score: 13, final: true })
+    expect(writes[0]?.key).toBe(writes[1]?.key)
+    expect(writes[0]?.key).toBe('r1:p1')
+  })
+})

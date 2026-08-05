@@ -1,6 +1,6 @@
 {
   "name": "table-kit",
-  "version": "0.36.0",
+  "version": "0.36.1",
   "description": "Shared game-night layer for Stacy's table-game scorers: seats, joining, sync, resilience, PWA.",
   "type": "module",
   "main": "./dist/index.js",
