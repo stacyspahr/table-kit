@@ -615,7 +615,20 @@ export function SeatClaim({
   players: PlayerRec[]
   roster: RosterLike[]
   onClaim: (name: string, rosterEntry?: string) => Promise<void>
-  onReclaim: (seat: PlayerRec) => Promise<void>
+  /**
+   * Take an existing seat.
+   *
+   * `takeOver` present means somebody ELSE is picking these cards up — the
+   * seat gets renamed and the change is recorded. Absent means the recovery
+   * path: same person, new phone, nothing renamed.
+   *
+   * The ROUND is not passed. This screen does not know what round it is and
+   * has no business learning; the app adds it on the way to `reclaimSeat`.
+   */
+  onReclaim: (
+    seat: PlayerRec,
+    takeOver?: { displayName: string; rosterEntry?: string },
+  ) => Promise<void>
   brand?: ReactNode
 }) {
   const [typing, setTyping] = useState(false)
@@ -624,6 +637,14 @@ export function SeatClaim({
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState('')
   const [confirm, setConfirm] = useState<PlayerRec | null>(null)
+  /**
+   * The seat being handed over, while its new occupant says who they are.
+   *
+   * Set, this screen means "who is taking over?" instead of "who are you?" —
+   * the same roster list doing a different job, because the question and the
+   * answer are identical and only the write at the end differs.
+   */
+  const [handingOver, setHandingOver] = useState<PlayerRec | null>(null)
 
   // What this phone knew when the screen opened. Read ONCE: nothing writes to
   // it while the screen is up, and re-reading every render would churn the
@@ -657,6 +678,28 @@ export function SeatClaim({
     }
   }
 
+  /**
+   * Picking a name, whichever question was asked.
+   *
+   * ⚠️ The two writes differ; the choosing does not. Keeping one function here
+   * is what stops the roster list, the search and the type-a-name box from
+   * being written twice with one of the copies quietly drifting.
+   */
+  function choose(displayName: string, rosterEntry?: string) {
+    const remember = { id: rosterEntry, display_name: displayName.trim() }
+    if (handingOver) {
+      return run(() => onReclaim(handingOver, { displayName, rosterEntry }), remember)
+    }
+    // Called with one argument when there is no roster entry, exactly as before
+    // this function existed. A trailing `undefined` changes nothing for any
+    // caller, but it changes the arity every app's `onClaim` is invoked with,
+    // and that is not a thing to alter in passing.
+    return run(
+      () => (rosterEntry ? onClaim(displayName, rosterEntry) : onClaim(displayName)),
+      remember,
+    )
+  }
+
   if (confirm) {
     return (
       <div className="screen center">
@@ -664,7 +707,7 @@ export function SeatClaim({
           <h2>Play as {confirm.display_name}?</h2>
           <p className="fine">
             {confirm.device_id
-              ? "That seat is already on someone's phone. If it's yours, take it back — your score comes with you."
+              ? "That seat is already on someone's phone, and its score so far comes with it."
               : 'That seat was added for someone without a phone. Take it and it becomes yours.'}
           </p>
           {failed && <p className="error">{failed}</p>}
@@ -680,7 +723,29 @@ export function SeatClaim({
           >
             {busy ? 'Taking the seat…' : "Yes, that's me"}
           </button>
-          <button className="btn ghost" onClick={() => setConfirm(null)}>
+          {/* ── Why this asks instead of working it out ─────────────────────
+              Nothing here can tell Dad-on-a-new-phone from Michelle-picking-
+              up-his-cards. Both are one phone claiming a seat that is already
+              held, and only the person holding it knows which. So it asks —
+              one extra line, on the rarest screen in the app.
+
+              Only for a seat with a PHONE on it. An unclaimed seat has no
+              occupant to take over from; taking it is just taking it, which
+              the button above already does. */}
+          {confirm.device_id && (
+            <button
+              className="btn ghost"
+              disabled={busy}
+              onClick={() => {
+                setHandingOver(confirm)
+                setConfirm(null)
+                setQuery('')
+              }}
+            >
+              Someone else is taking over
+            </button>
+          )}
+          <button className="btn ghost" disabled={busy} onClick={() => setConfirm(null)}>
             Cancel
           </button>
         </div>
@@ -690,39 +755,50 @@ export function SeatClaim({
 
   return (
     <div className="screen">
-      {brand}
+      {/* The same list, asked a different question. When a seat is being handed
+          over the person choosing is not joining — they are stepping into a
+          chair that already has a score in it, and the header is the only
+          thing that says so. */}
+      {handingOver ? (
+        <div className="brand">
+          <h1>Who's taking over?</h1>
+          <p className="tagline">
+            {handingOver.display_name}'s score so far stays with the seat.
+          </p>
+        </div>
+      ) : (
+        brand
+      )}
 
-      {!typing && (suggested.length > 0 || reclaimable.length > 0) && (
+      {!typing && (suggested.length > 0 || (!handingOver && reclaimable.length > 0)) && (
         <section className="card">
           {failed && <p className="error">{failed}</p>}
-          {reclaimable.map((p) => (
-            <button
-              key={p.id}
-              className="btn big"
-              disabled={busy}
-              onClick={() =>
-                p.device_id
-                  ? setConfirm(p)
-                  : run(() => onReclaim(p), {
-                      id: p.roster_entry,
-                      display_name: p.display_name,
-                    })
-              }
-            >
-              I'm {p.display_name}
-            </button>
-          ))}
+          {/* Not while a seat is being handed over. These offer to take a
+              DIFFERENT seat, which is not the question on screen. */}
+          {!handingOver &&
+            reclaimable.map((p) => (
+              <button
+                key={p.id}
+                className="btn big"
+                disabled={busy}
+                onClick={() =>
+                  p.device_id
+                    ? setConfirm(p)
+                    : run(() => onReclaim(p), {
+                        id: p.roster_entry,
+                        display_name: p.display_name,
+                      })
+                }
+              >
+                I'm {p.display_name}
+              </button>
+            ))}
           {suggested.map((r) => (
             <button
               key={r.id}
               className="btn big"
               disabled={busy}
-              onClick={() =>
-                run(() => onClaim(r.display_name, r.id), {
-                  id: r.id,
-                  display_name: r.display_name,
-                })
-              }
+              onClick={() => choose(r.display_name, r.id)}
             >
               I'm {r.display_name}
             </button>
@@ -757,12 +833,7 @@ export function SeatClaim({
                 <button
                   className="row"
                   disabled={busy}
-                  onClick={() =>
-                    run(() => onClaim(r.display_name, r.id), {
-                      id: r.id,
-                      display_name: r.display_name,
-                    })
-                  }
+                  onClick={() => choose(r.display_name, r.id)}
                 >
                   {r.display_name}
                 </button>
@@ -795,7 +866,7 @@ export function SeatClaim({
           <button
             className="btn big"
             disabled={busy || !name.trim()}
-            onClick={() => run(() => onClaim(name), { display_name: name.trim() })}
+            onClick={() => choose(name)}
           >
             {busy ? 'Taking a seat…' : "That's me"}
           </button>
@@ -811,7 +882,10 @@ export function SeatClaim({
         </button>
       )}
 
-      {players.length > 0 && (
+      {/* Hidden while a seat is being handed over: the question on screen is
+          who you are, and a list of seats to take instead is how somebody ends
+          up in the wrong chair with somebody else's score. */}
+      {!handingOver && players.length > 0 && (
         <section className="card">
           <h2>Already sitting</h2>
           {/* The instruction belongs here once, not repeated onto every row — a
@@ -830,6 +904,20 @@ export function SeatClaim({
             ))}
           </ul>
         </section>
+      )}
+
+      {handingOver && (
+        <button
+          className="linklike center-text"
+          disabled={busy}
+          onClick={() => {
+            setHandingOver(null)
+            setTyping(false)
+            setQuery('')
+          }}
+        >
+          Never mind
+        </button>
       )}
     </div>
   )
@@ -1107,7 +1195,7 @@ export { ScorePad, closedRounds, signed } from './scorepad.js'
 
 export { TakeSeat } from './takeseat.js'
 
-export { TableBoard, WaitingOn } from './board.js'
+export { TableBoard, WaitingOn, Handovers } from './board.js'
 
 export {
   NoteBox,

@@ -7,6 +7,38 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+## v0.31.0
+
+- `reclaimSeat` takes an optional `takeOver` — somebody ELSE is picking these
+  cards up. Dad goes to check on the kids, Michelle finishes his round. The
+  seat takes her name, records where it came from, and keeps its running total,
+  because submissions relate to the SEAT and not to a person.
+- ⚠️ **Renaming is not free and neither is not renaming.** Rename and the
+  earlier rounds sit under the new name; keep the old and the later ones sit
+  under it. One seat, one total, one name column — so the point is not to pick
+  a lie, it is to record what happened. New `handovers` on `PlayerRec`, an
+  ARRAY, because a seat can change hands twice in an evening.
+- ⚠️ **`roster_entry` moves with the name.** It is the durable identity a
+  lifetime-stats screen will count games against, and the display and the
+  identity must not disagree. `handovers` is what preserves the option of
+  apportioning properly later — do not build that until stats exist.
+- `SeatClaim` asks which case it is, because nothing can tell Dad-on-a-new-
+  phone from Michelle-taking-over from the outside. Two buttons; "Yes, that's
+  me" is unchanged and stays the prominent one, since recovery is the commoner
+  reason to be on that screen. Offered only for a seat with a phone on it — an
+  unclaimed seat has no occupant to take over from.
+- `onReclaim` gains an optional second argument. Existing callers are
+  unaffected: no `takeOver`, no rename, exactly the old behavior.
+- New: `Handovers` (`table-kit/react`) and `lastHandover`. The rename without a
+  record just moves which person is wrongly credited; this is the half that
+  makes it honest. Renders nothing on the ordinary night. `unit` is a prop —
+  Play Nine says hole, the others say round.
+- ⚠️ Needs the `handovers` column. Migrations
+  `1786100000`–`1786100002` in `app-platform-backend`, applied 2026-08-04. They
+  also add `left_round`, which **nothing reads yet** — it rode along rather than
+  costing a second restart. Step 4 of `docs/SEATS_SPEC.md`.
+- Step 2 of `docs/SEATS_SPEC.md`.
+
 ## v0.30.0
 
 - New: `removeSeat` — take a seat away, **in the lobby only**. Somebody taps

@@ -340,6 +340,94 @@ describe('taking a seat', () => {
     expect(screen.getByText(/already on someone's phone/)).toBeTruthy()
   })
 
+  /**
+   * ⚠️ The handover. Nothing can tell Dad-on-a-new-phone from Michelle picking
+   * up his cards, so the screen asks — and these pin that it asks, that the
+   * answer reaches `onReclaim`, and that the offer never appears where it
+   * would be nonsense.
+   */
+  describe('handing a seat over', () => {
+    const dad = seat('p1', { display_name: 'Dad', device_id: 'dads-phone' })
+
+    it('offers the handover beside the it-is-me button', () => {
+      render(<SeatClaim {...base} players={[dad]} />)
+      fireEvent.click(screen.getByText('Dad'))
+      expect(screen.getByText("Yes, that's me")).toBeTruthy()
+      expect(screen.getByText('Someone else is taking over')).toBeTruthy()
+    })
+
+    it('NEVER offers it for an unclaimed seat', () => {
+      // Nobody is holding that chair, so there is no one to take over FROM.
+      render(<SeatClaim {...base} players={[seat('p1', { display_name: 'Nana' })]} />)
+      fireEvent.click(screen.getByText('Nana'))
+      expect(screen.queryByText('Someone else is taking over')).toBeNull()
+    })
+
+    it('asks who is taking over, and says whose score they are inheriting', () => {
+      render(<SeatClaim {...base} players={[dad]} />)
+      fireEvent.click(screen.getByText('Dad'))
+      fireEvent.click(screen.getByText('Someone else is taking over'))
+      expect(screen.getByText("Who's taking over?")).toBeTruthy()
+      expect(screen.getByText(/Dad's score so far stays with the seat/)).toBeTruthy()
+    })
+
+    it('sends the new name and roster entry to onReclaim', async () => {
+      const onReclaim = vi.fn().mockResolvedValue(undefined)
+      render(
+        <SeatClaim
+          {...base}
+          players={[dad]}
+          roster={[{ id: 'r-michelle', display_name: 'Michelle' }]}
+          onReclaim={onReclaim}
+        />,
+      )
+      fireEvent.click(screen.getByText('Dad'))
+      fireEvent.click(screen.getByText('Someone else is taking over'))
+      fireEvent.click(screen.getByText('Michelle'))
+      await waitFor(() =>
+        expect(onReclaim).toHaveBeenCalledWith(dad, {
+          displayName: 'Michelle',
+          rosterEntry: 'r-michelle',
+        }),
+      )
+    })
+
+    it('takes a typed name too, for somebody the roster has never seen', async () => {
+      const onReclaim = vi.fn().mockResolvedValue(undefined)
+      render(<SeatClaim {...base} players={[dad]} onReclaim={onReclaim} />)
+      fireEvent.click(screen.getByText('Dad'))
+      fireEvent.click(screen.getByText('Someone else is taking over'))
+      fireEvent.click(screen.getByText('Type your name'))
+      fireEvent.change(screen.getByPlaceholderText('e.g. Michelle'), {
+        target: { value: 'Michelle' },
+      })
+      fireEvent.click(screen.getByText("That's me"))
+      await waitFor(() =>
+        expect(onReclaim).toHaveBeenCalledWith(dad, {
+          displayName: 'Michelle',
+          rosterEntry: undefined,
+        }),
+      )
+    })
+
+    it('hides the seat list while asking, so nobody lands in the wrong chair', () => {
+      render(<SeatClaim {...base} players={[dad]} />)
+      fireEvent.click(screen.getByText('Dad'))
+      fireEvent.click(screen.getByText('Someone else is taking over'))
+      expect(screen.queryByText('Already sitting')).toBeNull()
+    })
+
+    it('backs out without reclaiming anything', async () => {
+      const onReclaim = vi.fn()
+      render(<SeatClaim {...base} players={[dad]} onReclaim={onReclaim} />)
+      fireEvent.click(screen.getByText('Dad'))
+      fireEvent.click(screen.getByText('Someone else is taking over'))
+      fireEvent.click(screen.getByText('Never mind'))
+      await waitFor(() => expect(screen.getByText('Already sitting')).toBeTruthy())
+      expect(onReclaim).not.toHaveBeenCalled()
+    })
+  })
+
   it('marks which seats have nobody holding them', () => {
     render(
       <SeatClaim

@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest'
 import { bootstrapJoin, claimSeat, reclaimSeat, removeSeat } from './join.js'
 import type { TableKitConfig } from './config.js'
-import type { PlayerRec } from './state.js'
+import { lastHandover, type PlayerRec } from './state.js'
 
 const config: TableKitConfig = {
   appKey: 'nine',
@@ -275,6 +275,96 @@ describe('reclaimSeat', () => {
       id: 'p1',
       data: { device_id: 'new-phone', guest: 'guest1' },
     })
+  })
+
+  it('renames the seat and records the handover when somebody else takes over', async () => {
+    // Dad goes to check on the kids; Michelle picks up his cards. The seat is
+    // hers from here, and its running total comes with it.
+    const { pb, updated } = fakePb({})
+    await reclaimSeat({
+      pb,
+      config,
+      seat: player('p1', { display_name: 'Dad', device_id: 'dads-phone', roster_entry: 'r-dad' }),
+      deviceId: 'michelles-phone',
+      takeOver: { displayName: 'Michelle', rosterEntry: 'r-michelle', round: 5 },
+    })
+    expect(updated[0]!.data).toMatchObject({
+      device_id: 'michelles-phone',
+      display_name: 'Michelle',
+      // ⚠️ The durable identity follows the name. See the note in join.ts.
+      roster_entry: 'r-michelle',
+      handovers: [{ from: 'Dad', round: 5 }],
+    })
+  })
+
+  it('appends, so a seat can change hands more than once', async () => {
+    // Dad hands over on 5 and takes it back on 7. One pair of fields could not
+    // say that, which is why this is an array.
+    const { pb, updated } = fakePb({})
+    await reclaimSeat({
+      pb,
+      config,
+      seat: player('p1', {
+        display_name: 'Michelle',
+        device_id: 'michelles-phone',
+        handovers: [{ from: 'Dad', round: 5 }],
+      }),
+      deviceId: 'dads-phone',
+      takeOver: { displayName: 'Dad', rosterEntry: 'r-dad', round: 7 },
+    })
+    expect(updated[0]!.data.handovers).toEqual([
+      { from: 'Dad', round: 5 },
+      { from: 'Michelle', round: 7 },
+    ])
+  })
+
+  it('does NOT log a handover when the name is unchanged', async () => {
+    // Tapping your own name off the list is recovery, whichever button got you
+    // here. Logging it would fill the record with events that never happened.
+    const { pb, updated } = fakePb({})
+    await reclaimSeat({
+      pb,
+      config,
+      seat: player('p1', { display_name: 'Dad', device_id: 'old' }),
+      deviceId: 'new',
+      takeOver: { displayName: 'Dad', rosterEntry: 'r-dad', round: 5 },
+    })
+    expect(updated[0]!.data).not.toHaveProperty('handovers')
+    expect(updated[0]!.data).not.toHaveProperty('display_name')
+  })
+
+  it('survives a seat whose handovers column holds nothing sensible', async () => {
+    // It is a JSON column: an old row has no value at all.
+    const { pb, updated } = fakePb({})
+    await reclaimSeat({
+      pb,
+      config,
+      seat: { ...player('p1', { display_name: 'Dad' }), handovers: undefined },
+      deviceId: 'new',
+      takeOver: { displayName: 'Michelle', round: 2 },
+    })
+    expect(updated[0]!.data.handovers).toEqual([{ from: 'Dad', round: 2 }])
+  })
+})
+
+describe('lastHandover', () => {
+  it('returns the most recent change of occupant', () => {
+    const seat = player('p1', {
+      handovers: [
+        { from: 'Dad', round: 5 },
+        { from: 'Michelle', round: 7 },
+      ],
+    })
+    expect(lastHandover(seat)).toEqual({ from: 'Michelle', round: 7 })
+  })
+
+  it('returns null for a seat nobody has taken over', () => {
+    expect(lastHandover(player('p1'))).toBeNull()
+  })
+
+  it('returns null rather than throwing on a malformed column', () => {
+    expect(lastHandover({ ...player('p1'), handovers: 'nonsense' as any })).toBeNull()
+    expect(lastHandover({ ...player('p1'), handovers: [{ nope: 1 }] as any })).toBeNull()
   })
 })
 

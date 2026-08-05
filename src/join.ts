@@ -254,14 +254,59 @@ export async function reclaimSeat({
   config,
   seat,
   deviceId,
+  takeOver,
 }: {
   pb: PocketBase
   config: TableKitConfig
   seat: PlayerRec
   deviceId: string
+  /**
+   * Somebody ELSE is picking these cards up — Dad went to check on the kids
+   * and Michelle is finishing his round.
+   *
+   * Omit it and this is the recovery path exactly as it was: same seat, same
+   * name, new phone. The two cannot be told apart from the outside, which is
+   * why the caller has to say — only the person holding the phone knows
+   * whether they are themselves on a new handset or a different person
+   * entirely.
+   */
+  takeOver?: {
+    displayName: string
+    /** Moves with the name. See the roster note below. */
+    rosterEntry?: string
+    /** The round it happened on, for the record. */
+    round: number
+  }
 }): Promise<PlayerRec> {
-  return pb.collection(config.collections.players).update<PlayerRec>(seat.id, {
+  const data: Record<string, unknown> = {
     device_id: deviceId,
     guest: pb.authStore.record?.id,
-  })
+  }
+
+  const name = takeOver?.displayName.trim()
+  // Picking your own name off the list is not a handover, whichever button got
+  // you here. Nothing is renamed and nothing is logged.
+  if (takeOver && name && name !== seat.display_name) {
+    data.display_name = name
+    /**
+     * ⚠️ `roster_entry` MOVES with the name, and this is the load-bearing
+     * choice in here.
+     *
+     * It is the durable identity — what a lifetime-stats screen will count
+     * games against. Move it and Dad's record loses a game he played most of;
+     * leave it and Michelle's never shows the game she finished. Neither is
+     * right, so it follows the name: one seat, one current occupant, and the
+     * display and the identity must not disagree.
+     *
+     * `handovers` is what preserves the option of apportioning it properly
+     * later. Do NOT build the apportioning until lifetime stats exist.
+     */
+    data.roster_entry = takeOver.rosterEntry || ''
+    data.handovers = [
+      ...(Array.isArray(seat.handovers) ? seat.handovers : []),
+      { from: seat.display_name, round: takeOver.round },
+    ]
+  }
+
+  return pb.collection(config.collections.players).update<PlayerRec>(seat.id, data)
 }

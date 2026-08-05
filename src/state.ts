@@ -46,6 +46,50 @@ export interface PlayerRec {
   roster_entry: string
   /** Latecomers do not owe hands for rounds that ran before they sat down. */
   joined_round: number
+  /**
+   * Every time this seat has changed hands, oldest first.
+   *
+   * Dad plays four holes, goes to check on the kids, Michelle picks up his
+   * cards. The seat moves to her phone and its running total comes with it,
+   * because submissions relate to the SEAT and not to a person — so the seat
+   * takes her name and remembers whose it was.
+   *
+   * An ARRAY because a seat can change hands more than once: Dad can come back
+   * on hole seven. Absent on every seat claimed by the person still holding
+   * it, which is almost all of them.
+   */
+  handovers?: Handover[]
+  /**
+   * The first round this seat does NOT owe. Empty means still playing.
+   *
+   * ⚠️ Written by nothing yet — step 4 of `docs/SEATS_SPEC.md`. The column
+   * exists early because it rode along with `handovers` rather than costing a
+   * second restart. Nothing reads it until the kit learns `owesIn`.
+   */
+  left_round?: number
+}
+
+/** One change of occupant. `round` is the round it happened on. */
+export interface Handover {
+  from: string
+  round: number
+}
+
+/**
+ * The most recent change of occupant, or null.
+ *
+ * The kit returns the FACT and never the sentence. "Michelle took over from
+ * Dad on hole 5" is Play Nine's wording; Beat the Heat says round and Flip 7
+ * says round, and a component that wrote either would be a component that knew
+ * the games.
+ *
+ * Defensive about the shape because this is a JSON column: an old row has no
+ * value at all, and a hand-edited one could hold anything.
+ */
+export function lastHandover(seat: PlayerRec): Handover | null {
+  const list = Array.isArray(seat.handovers) ? seat.handovers : []
+  const last = list[list.length - 1]
+  return last && typeof last.from === 'string' && typeof last.round === 'number' ? last : null
 }
 
 export interface RoundRec {

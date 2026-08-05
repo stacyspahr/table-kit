@@ -1,7 +1,7 @@
 # Table size and the span of a seat — spec
 
-**Status: step 1 BUILT (v0.30.0); steps 2–4 proposed. Written 2026-08-04,
-reordered the same day.**
+**Status: steps 1 and 2 BUILT (v0.30.0, v0.31.0); steps 3 and 4 proposed.
+Written 2026-08-04, reordered and half-built the same day.**
 
 Three gaps, found by asking plain questions about a game night:
 
@@ -47,8 +47,8 @@ So the handover comes first, and it is nearly free.
 | Floor | `minPlayers` in `TableKitConfig`, default 1. UI only — no hook checks it |
 | Ceiling | **Nothing** |
 | Arriving late | `joined_round` on the seat. Fully handled |
-| Taking over a seat | `reclaimSeat` moves it to a new phone. **The name never changes, and no screen admits the case exists** |
-| Leaving | **Nothing.** No flag, no UI, in the kit or in any app |
+| Taking over a seat | `reclaimSeat({ takeOver })` — renames the seat and records it. Step 2, built in v0.31.0 |
+| Leaving | `left_round` **column exists** (rode along with step 2's migration) but nothing writes or reads it |
 | Removing a seat | `removeSeat`, **lobby only** — step 1, built in v0.30.0 |
 
 ### The jam
@@ -392,18 +392,27 @@ Two things the build decided that this spec had not:
 - **The confirm is `tone: 'normal'`, not `'danger'`.** Red would say this costs
   something. In the lobby it costs a name and a seat order, and the body says so.
 
-### 2. The handover — **next**
+### 2. ~~The handover~~ — **BUILT, v0.31.0, all three apps, 2026-08-04**
 
-The two-button confirm, the rename, and the `handovers` field. One additive
-migration on three `*_players` collections and **no hook logic changes at all**,
-which makes it the lowest-risk backend trip of the three remaining steps.
+Migrations `1786100000`–`1786100002` added `handovers` **and** `left_round` to
+all three `*_players` collections in one trip, as this section recommended;
+`left_round` is unread until step 4. Cold backup
+`pb_data.bak-2026-08-04-preseatspan` on the box. Schema verified against the
+live database after the restart rather than assumed from a clean exit.
 
-Commonest of the three cases, and it is mostly wording on top of a mechanism
-that already works.
+What the build settled that this spec had left open:
 
-> If step 4 is likely to follow soon, add `left_round` in **this** migration and
-> leave it unread until then. One trip to the box instead of two, and an unread
-> nullable column costs nothing.
+- **`SeatClaim` asks rather than guessing**, with the handover as a SECOND
+  button beside the unchanged "Yes, that's me". Recovery is the commoner reason
+  to be on that screen and must not get slower to make room for the rarer case.
+- **The offer only appears for a seat with a phone on it.** An unclaimed seat
+  has no occupant to take over from — taking it is just taking it.
+- **The seat list is hidden while the question is on screen.** Offering a list
+  of other seats to take, mid-handover, is how somebody lands in the wrong chair
+  with somebody else's score.
+- **`Handovers` is a kit component taking a `unit` prop** rather than five
+  copies of the same sentence across three apps. It renders on the end-of-game
+  and results screens, where there is room for a sentence.
 
 ### 3. The ceiling
 

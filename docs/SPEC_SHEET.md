@@ -1,6 +1,6 @@
 # table-kit — spec sheet
 
-**v0.30.0 · 331 tests · `stacyspahr/table-kit` (public)**
+**v0.31.0 · 345 tests · `stacyspahr/table-kit` (public)**
 
 What the package actually contains and exposes, as built. The *why* lives in
 [`TABLE_KIT_ARCHITECTURE.md`](TABLE_KIT_ARCHITECTURE.md);
@@ -100,6 +100,8 @@ The shapes the kit expects back from PocketBase.
 | `guest` | The throwaway credential holding this seat. How a returning phone finds its own seat |
 | `roster_entry` | The durable identity. `device_id` is a within-session convenience |
 | `joined_round` | Latecomers don't owe hands for rounds that ran before they sat down |
+| `handovers?` | Every time this seat changed hands: `[{ from, round }]`. See below |
+| `left_round?` | The first round this seat does NOT owe. **Written by nothing yet** — step 4 of [`SEATS_SPEC.md`](SEATS_SPEC.md) |
 
 **`RoundRec`** — `round_number`, `status: 'open' | 'review' | 'closed'`. The
 server flips `open → review` the moment every owing seat is final, so a dead
@@ -229,6 +231,8 @@ stats and wrong for a phone.
 | Export | Does |
 |---|---|
 | `removeSeat({ pb, config, game, seat })` | Take a seat away. **Lobby only** — see below |
+| `reclaimSeat({ …, takeOver? })` | Move a seat to this phone. `takeOver` renames it and logs the handover |
+| `lastHandover(seat)` | The most recent change of occupant, or null |
 | `rememberSeat(appKey, seat)` | The phone records who sat down on it |
 | `recalledSeats(appKey)` | One-tap buttons for regulars on their usual handset |
 | `seatChoices({ roster, seated, recalled, query, limit })` | Returns `suggested`, `reclaimable`, `list`, `hiddenCount`, `searchable` |
@@ -581,3 +585,50 @@ tag. `kit-status` warns about exactly this.
 lockfile holds the SHA) — run `npm install "github:stacyspahr/table-kit#vX.Y.Z"`
 explicitly, then `rm -rf node_modules/.vite` or Vite serves the old pre-bundled
 copy and the new exports come back `undefined`.
+
+---
+
+## A seat changing hands — v0.31.0
+
+Dad plays four holes, goes to check on the kids, Michelle picks up his cards.
+
+Mechanically this always worked: `reclaimSeat` moves the seat to a new phone
+and its whole running total comes with it, because submissions relate to the
+**seat** and not to a person. What was missing is that no screen admitted the
+case existed, and the board kept saying Dad all night.
+
+```ts
+await reclaimSeat({
+  pb: pbGuest, config: kit.config, seat, deviceId,
+  takeOver: { displayName: 'Michelle', rosterEntry: 'r-michelle', round: 5 },
+})
+```
+
+Omit `takeOver` and this is the recovery path exactly as it was.
+
+> ⚠️ **There is no free option on the name.** Rename and holes 1–4 sit under
+> Michelle; keep Dad and holes 5–9 sit under him. One seat, one running total,
+> one name column. So the seat is renamed — a board's job is to say who is
+> holding the cards right now — and `handovers` records what happened, which is
+> the half that stops it being a quiet rewrite. **Renaming without recording
+> does not fix the problem, it moves it.**
+
+> ⚠️ **`roster_entry` moves with the name.** It is the durable identity a
+> lifetime-stats screen will count games against; the display and the identity
+> must not disagree. `handovers` preserves the option of apportioning properly
+> later — **do not build the apportioning until lifetime stats exist.**
+
+> ⚠️ **`SeatClaim` asks, and it has to.** Nothing can tell Dad-on-a-new-phone
+> from Michelle-picking-up-his-cards: both are one phone claiming a held seat,
+> and only the person holding it knows which. Two buttons — "Yes, that's me" is
+> unchanged and stays the prominent one, because recovery is the commoner reason
+> to be on that screen. The handover is offered only for a seat with a phone on
+> it; an unclaimed seat has no occupant to take over from.
+
+`Handovers({ players, unit })` renders the record — nothing at all on the
+ordinary night. `unit` is the game's word for a round: `hole` in Play Nine.
+It belongs on a screen with room for a sentence (the end of the game), never
+squeezed into a name column on every phone.
+
+Requires the `handovers` column: migrations `1786100000`–`1786100002` in
+`app-platform-backend`, applied 2026-08-04.

@@ -25,7 +25,7 @@
  */
 
 import type { ReactNode } from 'react'
-import type { Standing } from './state.js'
+import { lastHandover, type Standing } from './state.js'
 import type { PlayerRec } from './state.js'
 
 export function TableBoard({
@@ -93,5 +93,58 @@ export function WaitingOn({
     <p className="fine center-text">
       Waiting on {players.map((p) => p.display_name).join(', ')}.
     </p>
+  )
+}
+
+/**
+ * Who took a seat over from whom, and when.
+ *
+ * ── Why this has to be shown at all ──────────────────────────────────────
+ * When a seat changes hands it takes the new occupant's name, because the
+ * board's job is to say who is holding the cards right now. That is the right
+ * call and it is also, on its own, a quiet rewrite: the earlier rounds end up
+ * filed under a name that did not play them, and the share card credits the
+ * wrong person just as surely as leaving the old name would have.
+ *
+ * Renaming without saying so does not fix the problem, it moves it. This is the
+ * half that makes it honest, and it belongs on a screen with room for a
+ * sentence — the end of the game — rather than squeezed into a name column on
+ * every phone for the rest of the night.
+ *
+ * Renders nothing at all on the ordinary night where nobody swapped, which is
+ * almost all of them.
+ */
+export function Handovers({
+  players,
+  unit,
+  heading = 'Seats that changed hands',
+}: {
+  players: PlayerRec[]
+  /**
+   * What this game calls a round, singular. `hole` in Play Nine, `round` in
+   * the other two. The kit knows the fact and never the word.
+   */
+  unit: string
+  heading?: ReactNode
+}) {
+  const swapped = players
+    .map((p) => ({ p, h: lastHandover(p) }))
+    .filter((x): x is { p: PlayerRec; h: NonNullable<ReturnType<typeof lastHandover>> } => !!x.h)
+
+  if (swapped.length === 0) return null
+
+  return (
+    <section className="card">
+      <h2>{heading}</h2>
+      <ul className="list tk-handovers">
+        {swapped.map(({ p, h }) => (
+          <li key={p.id}>
+            <span className="fine">
+              {p.display_name} took over from {h.from} on {unit} {h.round}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
