@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { classesInSource, classesInStylesheet } from './lint.js'
+import { classCoverage, classesInSource, classesInStylesheet } from './lint.js'
 
 const used = (code: string) => [...classesInSource(code)].sort()
 
@@ -166,5 +166,27 @@ describe('comments are not code', () => {
 
   it('does not mistake a url for a comment', () => {
     expect([...classesInSource(`<a href="https://x.test" className="real" />`)]).toEqual(['real'])
+  })
+})
+
+describe('the kit owns its own namespace', () => {
+  it('ignores tk- classes by default', () => {
+    // ⚠️ `tk-note`, `tk-take-seat` and `tk-handovers` are modifiers on an
+    // already styled base — `card tk-note`, `list tk-handovers` — rendered so
+    // an app CAN target them, not because it must. All four apps reported all
+    // three, and all four were fine.
+    const r = classCoverage({ sources: [], stylesheets: [] })
+    expect(r.undefined).toEqual([])
+  })
+
+  it('still reports a class the app itself owns', () => {
+    // The line that matters: unnamespaced classes are the app's problem, and
+    // those are the ones that actually shipped broken.
+    const src = classesInSource('<div className="tk-note seg-btn" />')
+    const defined = new Set<string>()
+    const missing = [...src]
+      .filter((c) => !defined.has(c))
+      .filter((c) => !c.startsWith('tk-'))
+    expect(missing).toEqual(['seg-btn'])
   })
 })

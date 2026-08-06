@@ -283,6 +283,24 @@ export function classCoverage(opts: {
   sources: string[]
   stylesheets: string[]
   /**
+   * Class prefixes that are somebody else's problem. Defaults to `['tk-']`.
+   *
+   * ⚠️ This exists because pointing the check at the kit's compiled components
+   * reported `tk-note`, `tk-take-seat` and `tk-handovers` as undefined in ALL
+   * FOUR apps — and all three are fine. They are modifiers on an already
+   * styled base (`card tk-note`, `list tk-handovers`), rendered so an app CAN
+   * target them, not because it must. A hook with no rule is working
+   * correctly.
+   *
+   * The line this draws is the useful one: an app owns the classes the kit
+   * leaves unnamespaced — `.seg`, `.pill.source`, the ones that genuinely
+   * shipped broken — and the kit owns its own `tk-` namespace. Without it the
+   * check reports three permanent failures in every app, which is how a check
+   * gets an `expect(...).toEqual(['tk-note', …])` written around it and stops
+   * meaning anything.
+   */
+  ignorePrefixes?: string[]
+  /**
    * Classes to accept without a rule — ones applied by something outside the
    * stylesheets, or composed at runtime.
    *
@@ -305,8 +323,13 @@ export function classCoverage(opts: {
 
   for (const c of opts.allow ?? []) defined.add(c)
 
+  const ignored = opts.ignorePrefixes ?? ['tk-']
+
   return {
-    undefined: [...used].filter((c) => !defined.has(c)).sort(),
+    undefined: [...used]
+      .filter((c) => !defined.has(c))
+      .filter((c) => !ignored.some((p) => c.startsWith(p)))
+      .sort(),
     used: used.size,
   }
 }
