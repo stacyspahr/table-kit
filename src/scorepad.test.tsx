@@ -142,6 +142,19 @@ describe('ScorePad', () => {
     expect(onFix).not.toHaveBeenCalled()
   })
 
+  it('does not promise a fix path the app does not have', () => {
+    // ⚠️ Reported from an Oh Hell game: "entering the scorecard won't allow me
+    // to change the last round count… if we shouldn't allow it, then the text
+    // at the bottom shouldn't say only the latest hand can be changed."
+    //
+    // Three of the four scorers pass no `fixable` at all, and all three were
+    // telling their table that the newest round was editable. It is not — there
+    // is no route to editing anything.
+    render(<ScorePad state={state(rounds, subs)} winner="lowest" onClose={() => {}} />)
+    expect(screen.getByText('Scored and banked.')).toBeTruthy()
+    expect(screen.queryByText(/can still be changed/)).toBeNull()
+  })
+
   it('says so rather than showing an empty board before the first round is banked', () => {
     render(
       <ScorePad state={state([round('r1', 1, 'open')], [])} winner="lowest" onClose={() => {}} />,

@@ -196,14 +196,24 @@ export function ScorePad<G extends GameRec, S extends SubmissionRec>({
         })}
       </ul>
 
-      {/* Two lines, and only ever one of them. The editable round says what a
-          tap does; every other round says why there is nothing to tap, because
-          a list of rows that look almost tappable and aren't is worse than a
-          sentence. */}
+      {/* THREE cases, not two, and the third is the one that was missing.
+          The editable round says what a tap does; every other round says why
+          there is nothing to tap, because a list of rows that look almost
+          tappable and aren't is worse than a sentence.
+
+          ⚠️ An app that never passes `fixable` has NO fix path at all, and
+          telling that table "only the latest one can still be changed" is a
+          promise the app cannot keep. Reported from an Oh Hell game: "entering
+          the scorecard won't allow me to change the last round count… if we
+          shouldn't allow it, then the text at the bottom shouldn't say only
+          the latest hand can be changed." Three of the four scorers pass no
+          `fixable`, so three of the four were saying it. */}
       <p className="fine">
         {canFix
           ? 'Found a card after it was scored? Tap a seat to enter that pile again — the board updates for everyone.'
-          : `Scored and banked. Only the latest ${roundNoun.toLowerCase()} can still be changed.`}
+          : fixable
+            ? `Scored and banked. Only the latest ${roundNoun.toLowerCase()} can still be changed.`
+            : 'Scored and banked.'}
       </p>
 
       <button className="btn ghost" onClick={onClose}>
