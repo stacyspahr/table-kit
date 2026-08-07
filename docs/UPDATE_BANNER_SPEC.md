@@ -78,27 +78,34 @@ does. So the kit gains a way to be told "not now", and each app decides.
 ### The shape
 
 ```tsx
-UpdateBanner({ buildId, label?, hold? })
+UpdateBanner({ buildId, label?, defer? })
 ```
 
-`hold` suppresses rendering while true, **without discarding the staleness that
+`defer` suppresses rendering while true, **without discarding the staleness that
 was already detected**. When it goes false the banner appears immediately — the
 poll does not have to come round again.
 
 ```tsx
-if (!stale || hold) return null
+if (!stale || defer) return null
 ```
 
-Default `hold = false`, so any app that does not pass it behaves exactly as
+Default `defer = false`, so any app that does not pass it behaves exactly as
 today. No app is forced to adopt this in the same release.
 
-⚠️ **Hold must not unmount the watcher.** Gating the `useEffect` on `hold` would
+⚠️ **`defer` must not unmount the watcher.** Gating the `useEffect` on it would
 restart polling every time a hand changes and could miss the deploy entirely.
 Only the render is gated.
 
+⚠️ **Not `hold`.** That word is already taken twice in this suite and neither
+meaning is this one: Flip 7 ships a press-and-hold gesture (`--hold-ms`,
+`hold-sweep` in its `index.css`, and "the hold on Score the round"), and a
+`hold` flag on the round record is the parked fix for the auto-submit
+countdown. A prop called `hold` on a kit component would read as press-and-hold
+to anyone who knows Flip 7.
+
 ### What each app passes
 
-**Oh Hell.** Hold during bidding and trick entry; release on the scored screen,
+**Oh Hell.** Defer during bidding and trick entry; release on the scored screen,
 which has no number pad — only *Next hand* and *Change my count* — and is the
 natural pause in a hand anyway. It is also the screen the table is already
 looking at together.
@@ -115,8 +122,8 @@ apps the top-right of that header is the **Join code** button. Trading "a tap
 lands on the wrong number" for "a tap reloads the page" is not obviously a
 trade, and it makes the hand number unreadable while the banner is up.
 
-Worth revisiting as defence in depth once `hold` is in, but it does not stand on
-its own and it changes how the banner looks in every app.
+Worth revisiting as defence in depth once `defer` is in, but it does not stand
+on its own and it changes how the banner looks in every app.
 
 **Reserving the banner's height permanently.** No reflow, but a dead 60px strip
 at the top of every screen forever, on phones, on the one app family whose whole
@@ -127,9 +134,9 @@ rest of time, and reverses a decision made deliberately from table feedback.
 
 ## 6. Build order
 
-1. `hold` prop on `UpdateBanner`, defaulting false. Kit-only, no app changes,
+1. `defer` prop on `UpdateBanner`, defaulting false. Kit-only, no app changes,
    nothing observable until an app passes it.
-2. Oh Hell passes `hold` — true except on the scored screen.
+2. Oh Hell passes `defer` — true except on the scored screen.
 3. Play Nine and Flip 7 when their quiet screen is chosen.
 
 No CSS change. No schema change. Step 1 is additive and safe to ship alone.
