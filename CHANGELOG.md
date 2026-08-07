@@ -7,6 +7,36 @@ Bump meanings: patch = bug fix, always safe to take. Minor = something new
 added, nothing you already use moved. Major = something changed shape, read
 before bumping.
 
+⚠️ **This file has a hole.** Entries stop at v0.35.0 and pick up again at
+v0.40.0; v0.36.0 through v0.39.1 shipped without one. Read the commits for
+those. Not reconstructed here — a changelog written from memory months later is
+worse than an admitted gap.
+
+## v0.40.0
+
+- `UpdateBanner` takes **`defer`**. While true the banner is not drawn, even
+  though a new deploy has been detected; when it goes false the banner appears
+  at once. Nothing you already use moves — the default is false, which is
+  exactly today's behaviour.
+- ⚠️ **The banner is `position: sticky`, so it sits in normal flow and mounting
+  it pushes every control below it down** by its own height, around 60px once
+  the safe-area inset counts. A poll decides when that happens, so it can land
+  between two taps. In Oh Hell on 2026-08-06 it did: the page shifted during
+  trick entry, a tap meant for one seat's row hit another seat's numbers, and it
+  silently overwrote a score that was already in.
+- ⚠️ **The kit cannot tell which screen is safe** — it has no idea what a hand
+  is. Each app decides and passes `defer`. An app that passes nothing keeps
+  today's behaviour, so this is safe to take without touching anything.
+- ⚠️ **`defer` gates the render, never the watcher.** `watchForUpdates` calls
+  `onStale` once and then stops looking. Putting `defer` in the effect's deps
+  would restart polling on every hand and would forget a deploy noticed while
+  deferred — the table would then finish the night on the old build with no
+  banner ever shown. Staleness is remembered; only the showing waits.
+- Not named `hold`: Flip 7 already ships a press-and-hold gesture (`--hold-ms`,
+  `hold-sweep`), and a `hold` flag on the round record is the parked fix for the
+  auto-submit countdown.
+- Full reasoning, including what was rejected, in `docs/UPDATE_BANNER_SPEC.md`.
+
 ## v0.35.0
 
 - New `--tk-link`, and `.linklike` uses it instead of `--tk-accent`.
