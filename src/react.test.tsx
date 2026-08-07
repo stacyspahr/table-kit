@@ -113,9 +113,56 @@ function fakePb(overrides: Record<string, any> = {}) {
 }
 
 describe('the update banner', () => {
+  /** A deployed `/version.json` advertising a different build to this one. */
+  function deployed(buildId: string) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ buildId }) }),
+    )
+  }
+
   it('says nothing while the build is current', () => {
     const { container } = render(<UpdateBanner buildId="abc" />)
     expect(container.querySelector('.update-banner')).toBeNull()
+  })
+
+  it('offers the update once a newer build is out there', async () => {
+    deployed('newer')
+    const { container } = render(<UpdateBanner buildId="abc" />)
+    await waitFor(() => expect(container.querySelector('.update-banner')).not.toBeNull())
+  })
+
+  it('stays out of the way while the app says defer', async () => {
+    deployed('newer')
+    const { container } = render(<UpdateBanner buildId="abc" defer />)
+
+    // Long enough for the immediate check to have resolved and re-rendered.
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(container.querySelector('.update-banner')).toBeNull()
+  })
+
+  /**
+   * The one that matters. `watchForUpdates` calls `onStale` ONCE and then stops
+   * looking, so a deploy noticed during a deferred moment is the only notice
+   * there will be. If defer discarded it rather than holding it, the table
+   * would play the rest of the night on the old build and never be told.
+   */
+  it('remembers a deploy it was told to sit on, and shows it when released', async () => {
+    deployed('newer')
+    const { container, rerender } = render(<UpdateBanner buildId="abc" defer />)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(container.querySelector('.update-banner')).toBeNull()
+
+    // The hand ends. Nothing re-polls — the staleness was already known.
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('no more polling')))
+    rerender(<UpdateBanner buildId="abc" defer={false} />)
+
+    await waitFor(() => expect(container.querySelector('.update-banner')).not.toBeNull())
   })
 })
 

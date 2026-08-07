@@ -127,19 +127,53 @@ export function QrPanel({
  * kit's `watchForUpdates`, Flip 7 still carried its own copy of the polling —
  * so a fix to one was not a fix to the other. That is the whole argument for
  * this file.
+ *
+ * ── `defer`, and why it exists ──────────────────────────────────────────
+ *
+ * The banner is `position: sticky`, so it sits in normal flow and mounting it
+ * pushes every control below it down by its own height — about 60px once the
+ * safe-area inset is counted. Arrival time is decided by a poll, so it can land
+ * between two taps.
+ *
+ * It did. Oh Hell, 2026-08-06, mid-hand: a deploy landed during trick entry,
+ * the page shifted, a tap meant for one seat's row hit another seat's number
+ * buttons, and it silently overwrote a score that had already been entered.
+ * Bidding and trick entry are single-tap-commits by design, which is what makes
+ * an unannounced shift expensive there.
+ *
+ * The kit cannot know which screen is safe — it has no idea what a hand is. So
+ * the app says "not now" and the kit obeys. See `docs/UPDATE_BANNER_SPEC.md`.
+ *
+ * ⚠️ Gates the RENDER, never the watcher. Putting `defer` in the `useEffect`
+ * deps would tear down and restart polling every time a hand changed, and
+ * `watchForUpdates` fires `onStale` once and then stops looking — so a deploy
+ * noticed during a deferred moment would be forgotten rather than shown later.
+ * Staleness is remembered; only the showing waits.
+ *
+ * ⚠️ Not called `hold`. That word is taken twice in this suite already and
+ * neither meaning is this one: Flip 7 ships a press-and-hold gesture
+ * (`--hold-ms`, `hold-sweep`), and a `hold` flag on the round record is the
+ * parked fix for the auto-submit countdown.
  */
 export function UpdateBanner({
   buildId,
   label = '🔄 New version available — tap to update',
+  defer = false,
 }: {
   buildId: string
   label?: string
+  /**
+   * Suppress the banner for now — the table is mid-tap on something that
+   * matters. Staleness already detected is kept, so the banner appears the
+   * moment this goes false, without waiting for another poll.
+   */
+  defer?: boolean
 }) {
   const [stale, setStale] = useState(false)
 
   useEffect(() => watchForUpdates({ buildId, onStale: () => setStale(true) }), [buildId])
 
-  if (!stale) return null
+  if (!stale || defer) return null
   return (
     <button className="update-banner" onClick={() => window.location.reload()}>
       {label}
