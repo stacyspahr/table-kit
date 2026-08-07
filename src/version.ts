@@ -52,7 +52,12 @@ export function watchForUpdates(opts: {
   onStale: () => void
   intervalMs?: number
 }): () => void {
-  const every = opts.intervalMs ?? 5 * 60 * 1000
+  // ⚠️ 60s, not the 5 minutes this used to be. The interval only does real
+  // work in one case — app open, screen on, somebody watching — because iOS
+  // freezes timers in a backgrounded PWA and the visibility check covers the
+  // pocket case anyway. At five minutes that watched case read as broken. The
+  // poll is a ~120-byte no-store fetch, so a minute costs nothing.
+  const every = opts.intervalMs ?? 60 * 1000
   let done = false
 
   async function check() {

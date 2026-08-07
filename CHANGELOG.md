@@ -12,6 +12,23 @@ v0.40.0; v0.36.0 through v0.39.1 shipped without one. Read the commits for
 those. Not reconstructed here — a changelog written from memory months later is
 worse than an admitted gap.
 
+## v0.40.1
+
+- The update poll runs every **60 seconds** instead of every five minutes, so a
+  new deploy is offered while somebody is still looking at the app. Nothing you
+  use moves; `intervalMs` still overrides it.
+- ⚠️ **Five minutes read as broken.** The interval only does real work in one
+  case — app open, screen on, somebody watching — because iOS freezes timers in
+  a backgrounded PWA, and the `visibilitychange` check already covers coming
+  back to it. That watched case is also the only one anybody tests in, so the
+  banner looked dead exactly when it was being checked. Found in Crib Sheet on
+  2026-08-07: a phone sat on the previous build, the tester force-quit before
+  the first poll came round, and force-quitting is the one action that
+  guarantees you never see the banner — it reloads the page, which is precisely
+  what the banner would have offered.
+- The poll is a ~120-byte `no-store` fetch of `/version.json`, so a minute
+  costs nothing worth counting.
+
 ## v0.40.0
 
 - `UpdateBanner` takes **`defer`**. While true the banner is not drawn, even
