@@ -117,6 +117,12 @@ one screen that must work before anyone can find out whether anything else does.
       draft"); **10,000** made every row a button anyway and lost a banked 600
       mid-game. If you want corrections, they must reopen a banked turn WITHOUT
       passing through `draft`.
+- [ ] **If you build corrections, the correcting mode does NOT autosave.** One
+      `final` write at the end, no drafts at any point. The failure that leaves
+      is the right one: a phone dying half way through a correction leaves the
+      ORIGINAL turn standing rather than a half-edited one. Scope corrections to
+      the round still OPEN, so nothing can rewrite a total the server already
+      used to decide the endgame. — **10,000**, `TurnPad`'s `mode` prop.
 - [ ] **Nothing destructive is one tap.** Two taps, a sentence saying what goes,
       and never a swipe. The destructive action at a table is the one somebody
       does by accident while passing their phone across to show the board.
