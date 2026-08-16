@@ -106,6 +106,17 @@ one screen that must work before anyone can find out whether anything else does.
 - [ ] **A game can be deleted.** ⚠️ Test games accumulate from the very first
       evening, because the first evening *is* testing.
       — **Oh Hell**, then **10,000 repeated it**, which is why this file exists.
+- [ ] ⚠️ **A row that has already been scored is NOT tappable through to the
+      entry screen — this one is DATA LOSS.** Every entry write is an upsert on
+      (round, player), so opening the pad on a banked seat and touching one key
+      rewrites its `final` submission into a `draft` worth 0 — and drafts are
+      excluded from every total, so **the score silently disappears and the
+      player drops off the board.** Guard it in BOTH places: the board must not
+      offer the row, and the entry screen must refuse to write over a final row.
+      — **Beat the Heat** documented the rule ("a correction never writes a
+      draft"); **10,000** made every row a button anyway and lost a banked 600
+      mid-game. If you want corrections, they must reopen a banked turn WITHOUT
+      passing through `draft`.
 - [ ] **Nothing destructive is one tap.** Two taps, a sentence saying what goes,
       and never a swipe. The destructive action at a table is the one somebody
       does by accident while passing their phone across to show the board.
