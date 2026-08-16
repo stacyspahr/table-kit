@@ -7,6 +7,13 @@ What the package actually contains and exposes, as built. The *why* lives in
 the *what changed when* lives in [`CHANGELOG.md`](../CHANGELOG.md). This is the
 reference you keep open while writing a game.
 
+> ⚠️ **Before a new scorer meets a real table, run
+> [`PRE_SHIP_CHECKLIST.md`](PRE_SHIP_CHECKLIST.md).** Every line in it is
+> something a person hit on a real evening, with the app that found it named
+> against it. It exists because 10,000 rediscovered four things this suite
+> already knew — including, word for word, the finding Oh Hell's first game had
+> already produced.
+
 ---
 
 ## At a glance

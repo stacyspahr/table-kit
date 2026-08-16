@@ -11,6 +11,12 @@ Design rationale, the resilience guarantees, and the versioning plan live in
 [`docs/TABLE_KIT_ARCHITECTURE.md`](docs/TABLE_KIT_ARCHITECTURE.md). What the
 package actually exposes is [`docs/SPEC_SHEET.md`](docs/SPEC_SHEET.md).
 
+**Building a new scorer?** Read
+[`docs/PRE_SHIP_CHECKLIST.md`](docs/PRE_SHIP_CHECKLIST.md) *before you write the
+lobby.* It is a list of things that have already gone wrong at a real table,
+each one naming the app that found it — written after the fifth app in the suite
+rediscovered four problems the first four had already solved.
+
 ## Install
 
 ```json
