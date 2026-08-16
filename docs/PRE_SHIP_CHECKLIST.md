@@ -126,6 +126,21 @@ one screen that must work before anyone can find out whether anything else does.
       `@media (display-mode: browser)`. **`svh` cannot fix this** — it sizes a
       screen that FITS, and an entry screen scrolls. — **Beat the Heat**, and it
       was invisible from every chair except a guest's.
+- [ ] ⚠️ **No optional column is named for its default when that default is not
+      the zero value of its type.** PocketBase stores an unset bool as `false`
+      and an unset number as `0` — never null — so a positively-named flag
+      cannot tell "never written" from "deliberately switched off". Worse, the
+      kit's own `claimSeat` / `submit` know nothing about your app's extra
+      columns, so **every row they create lands on the wrong side of it.**
+      Name the column for the NON-default state (`not_scoring`, not
+      `keeps_score`) and the platform's default becomes the intended one.
+      — **10,000**, where two people holding two phones were told "nobody can
+      keep score, every seat is without a phone" — both halves wrong, and the
+      app had no way to know, because the two states were the same byte.
+- [ ] **One place converts a record into what the engine reasons about**, and it
+      is tested. ⚠️ The mapping above lived inline on three screens, which is
+      how a boundary rule with an exception in it drifts: fixing two of the
+      three copies looks exactly like fixing it.
 - [ ] **A draft is not an answer.** `waitingOn`, the totals, the board's ✓, the
       entry screen's mount condition and the server hook must all require
       `final`. Three separate bugs came from forgetting it.
