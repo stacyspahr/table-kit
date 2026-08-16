@@ -147,6 +147,13 @@ one screen that must work before anyone can find out whether anything else does.
 - [ ] The round hook filters **`status = 'final'`**, not `status != 'draft'`, if
       the app has any third state or writes drafts frequently. — **Oh Hell**
       (a `bid` is not an answer), **10,000** (a draft on every keypad tap).
+- [ ] ⚠️ **`keepAwake()` on the play screen** — `useEffect(() => keepAwake().stop, [])`.
+      **Players are the reason, not the host.** Whoever is entering taps every
+      few seconds and never dims; everybody else handed in and is watching the
+      board, untouched for minutes, and locks mid-round, every round. Put it on
+      the screen that stays MOUNTED across entry, so there is no gap when
+      somebody opens the keypad. — All four earlier scorers had it; **10,000
+      shipped without and it was reported from the table.**
 - [ ] **Never auto-navigate to an entry screen.** The board is the default
       always; one primary button is whatever the table is waiting on.
 - [ ] **Keys do not move between taps.** A chip strip that grows as it fills
