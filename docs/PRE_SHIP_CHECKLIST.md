@@ -165,6 +165,18 @@ one screen that must work before anyone can find out whether anything else does.
       the screen that stays MOUNTED across entry, so there is no gap when
       somebody opens the keypad. — All four earlier scorers had it; **10,000
       shipped without and it was reported from the table.**
+- [ ] ⚠️ **The play screen reads the game from `loadState`, never from a prop.**
+      `loadState` returns a fresh game record every poll; a prop handed down at
+      mount is frozen. If the screen above it stops polling the game once play
+      starts — which is the right thing for it to do — then a status the SERVER
+      changes (finished, ended early) never reaches the phone.
+      — **10,000**: the endgame hook correctly finished a game and every phone
+      went on offering another lap, because the winner screen keys off a status
+      the client had frozen ninety minutes earlier.
+- [ ] ⚠️ **Handle `state.current === null`.** A finished or between-laps game
+      has no open round, and a board built on that assumption is nonsense: the
+      round number falls back to 1 and every seat looks like it still owes a
+      turn in a round that does not exist.
 - [ ] **Never auto-navigate to an entry screen.** The board is the default
       always; one primary button is whatever the table is waiting on.
 - [ ] **Keys do not move between taps.** A chip strip that grows as it fills
