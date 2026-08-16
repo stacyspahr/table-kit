@@ -8,7 +8,9 @@
  *
  * ── What it is for ────────────────────────────────────────────────────────
  * An endpoint that spends money — the rules adviser — cannot be open, and each
- * scorer had written the same gate by hand. This is that gate, once.
+ * scorer had written the same gate by hand. This is that gate, once. It also
+ * carries the triage adviser's prompt (`triage-prompt.ts`), for the same
+ * reason and with the same no-SDK rule: a prompt and a schema are strings.
  *
  * ── Who is admitted, and on what evidence ─────────────────────────────────
  * A HOST is a platform user with an approved account and a grant for this app.
@@ -33,6 +35,8 @@
  * privileged one, so the collection rule that says "a guest sees only its own
  * game" does the scoping and this file never restates it.
  */
+
+export * from './triage-prompt.js'
 
 /** Only the shape this needs. A Vercel request satisfies it; so does a test. */
 export interface AuthedRequest {
