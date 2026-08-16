@@ -12,6 +12,7 @@ import { createClients, type Clients } from './pb.js'
 import { createQueue, type Queue } from './queue.js'
 import type { GameRec, SubmissionRec } from './state.js'
 
+export * from './advice.js'
 export * from './awards.js'
 export * from './config.js'
 export * from './nights.js'

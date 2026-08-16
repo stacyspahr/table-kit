@@ -23,6 +23,13 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  ADVICE_LABEL,
+  askAdviser,
+  type AdviceBucket,
+  type AdviceTurn,
+  type RulingAdvice,
+} from './advice.js'
 import { groupByNight } from './nights.js'
 import {
   BUCKET_LABEL,
@@ -44,12 +51,27 @@ export function RulingsList({
   collection,
   onClose,
   title = 'Questions asked',
+  adviceEndpoint,
+  authToken,
+  adviser = 'rules official',
 }: {
   pb: RulingStore
   /** The app's rulings collection — `heat_rulings`, `f7_rulings`, … */
   collection: string
   onClose: () => void
   title?: string
+  /**
+   * Where to ask what to do about a question — `/api/triage`.
+   *
+   * Optional, and the screen is whole without it: an app that hasn't got the
+   * endpoint yet shows exactly the three buttons it always did. See
+   * `advice.ts` for why it is worth having.
+   */
+  adviceEndpoint?: string
+  /** The host credential to present. A function — tokens get refreshed. */
+  authToken?: () => string
+  /** What this game calls the thing answering. Its name, not a new one. */
+  adviser?: string
 }) {
   const [rulings, setRulings] = useState<RulingRec[]>([])
   /** Everything already settled, read only to count repeats. */
@@ -132,28 +154,36 @@ export function RulingsList({
               heading="To look at"
               rulings={undecided}
               past={past}
-              render={(r) => (
+              adviceEndpoint={adviceEndpoint}
+              authToken={authToken}
+              adviser={adviser}
+              /* The advice arrives as a suggestion on the buttons that were
+                 always here — the recommended one loses its `ghost` and reads
+                 as the thing to press. Deliberately not a fourth button that
+                 does it for you: the tap is where the decision is recorded, and
+                 it should stay a person's. */
+              render={(r, advice) => (
                 <>
                   <button
-                    className="btn ghost"
+                    className={suggested(advice, 'rule')}
                     disabled={busy.includes(r.id)}
                     onClick={() => act(r.id, () => decideRuling(pb, collection, r.id, 'rule'), false)}
                   >
                     {BUCKET_LABEL.rule}
                   </button>
                   <button
-                    className="btn ghost"
+                    className={suggested(advice, 'sheet')}
                     disabled={busy.includes(r.id)}
                     onClick={() => act(r.id, () => decideRuling(pb, collection, r.id, 'sheet'), false)}
                   >
                     {BUCKET_LABEL.sheet}
                   </button>
                   <button
-                    className="btn ghost"
+                    className={suggested(advice, 'nothing')}
                     disabled={busy.includes(r.id)}
                     onClick={() => act(r.id, () => dismissRuling(pb, collection, r.id), true)}
                   >
-                    Nothing to do
+                    {ADVICE_LABEL.nothing}
                   </button>
                 </>
               )}
@@ -166,6 +196,9 @@ export function RulingsList({
               note="Decided already. Off the list once the rules have caught up."
               rulings={todo}
               past={past}
+              /* No adviser here on purpose. This pile is waiting on an edit to
+                 a file in a repo, and asking what to do about a question you
+                 already decided is a second opinion nobody asked for. */
               render={(r) => (
                 <>
                   <button
@@ -205,13 +238,20 @@ function Pile({
   rulings,
   past,
   render,
+  adviceEndpoint,
+  authToken,
+  adviser,
 }: {
   heading: string
   note?: string
   rulings: RulingRec[]
   /** Settled questions, for saying which time this one is. */
   past: RulingRec[]
-  render: (r: RulingRec) => ReactNode
+  /** Given the advice too, so a recommendation can dress its own button. */
+  render: (r: RulingRec, advice: RulingAdvice | null) => ReactNode
+  adviceEndpoint?: string
+  authToken?: () => string
+  adviser?: string
 }) {
   const nights = useMemo(() => groupByNight(rulings, new Date()), [rulings])
 
@@ -230,7 +270,15 @@ function Pile({
         <div key={night.key}>
           <p className="tk-ruling-night">{night.label}</p>
           {night.items.map((r) => (
-            <Ruling key={r.id} ruling={r} past={past} actions={render(r)} />
+            <Ruling
+              key={r.id}
+              ruling={r}
+              past={past}
+              render={render}
+              adviceEndpoint={adviceEndpoint}
+              authToken={authToken}
+              adviser={adviser}
+            />
           ))}
         </div>
       ))}
@@ -241,13 +289,25 @@ function Pile({
 function Ruling({
   ruling,
   past,
-  actions,
+  render,
+  adviceEndpoint,
+  authToken,
+  adviser,
 }: {
   ruling: RulingRec
   past: RulingRec[]
-  actions: ReactNode
+  render: (r: RulingRec, advice: RulingAdvice | null) => ReactNode
+  adviceEndpoint?: string
+  authToken?: () => string
+  adviser?: string
 }) {
   const [open, setOpen] = useState(false)
+  /**
+   * The advice, once it has been asked for. Per ruling, and never on mount:
+   * this costs money and most questions get read without needing it, so it is
+   * one tap rather than a page of them fired the moment the screen opens.
+   */
+  const [advice, setAdvice] = useState<RulingAdvice | null>(null)
 
   /**
    * Which time this is, counting everything already settled.
@@ -302,7 +362,160 @@ function Ruling({
           </p>
         ))}
 
-      <div className="tk-ruling-actions">{actions}</div>
+      {adviceEndpoint && (
+        <AdviceBox
+          endpoint={adviceEndpoint}
+          authToken={authToken}
+          adviser={adviser ?? 'rules official'}
+          ruling={{
+            question: ruling.question,
+            answer: ruling.answer,
+            context: ruling.context,
+            askedBefore: before,
+          }}
+          advice={advice}
+          onAdvice={setAdvice}
+        />
+      )}
+
+      <div className="tk-ruling-actions">{render(ruling, advice)}</div>
     </article>
+  )
+}
+
+/**
+ * Which button the advice is pointing at.
+ *
+ * A recommendation shouldn't need a legend, so it dresses the button it means
+ * rather than naming it somewhere else on the screen. No advice yet — or advice
+ * for one of the other two — and every button looks exactly as it always did.
+ */
+function suggested(advice: RulingAdvice | null, bucket: AdviceBucket): string {
+  return advice?.bucket === bucket ? 'btn' : 'btn ghost'
+}
+
+/**
+ * "What should I do?" — and the conversation that sometimes follows.
+ *
+ * ── Why the follow-up box is here at all ──────────────────────────────────
+ * The first answer is a verdict, and a verdict you can't interrogate is one you
+ * either take on faith or ignore. Both are bad here: the whole point is that the
+ * person reading it can't check the reasoning themselves, so "why isn't that
+ * covered?" and "what would the new rule say?" are the questions that turn the
+ * advice into something they can stand behind at the table.
+ *
+ * ⚠️ Every turn re-sends the whole rulebook, because the endpoint has no memory
+ * between requests. That is what the prompt cache is for, and it is the reason
+ * the subject and the advice ride on the request rather than being looked up.
+ */
+function AdviceBox({
+  endpoint,
+  authToken,
+  adviser,
+  ruling,
+  advice,
+  onAdvice,
+}: {
+  endpoint: string
+  authToken?: () => string
+  adviser: string
+  ruling: { question: string; answer: string; context: string; askedBefore: number }
+  advice: RulingAdvice | null
+  onAdvice: (a: RulingAdvice) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [turns, setTurns] = useState<AdviceTurn[]>([])
+  const [question, setQuestion] = useState('')
+
+  async function firstLook() {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      const res = await askAdviser({ endpoint, authToken, ruling })
+      if (res.advice) onAdvice(res.advice)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't work that one out.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function followUp() {
+    const text = question.trim()
+    if (!text || busy || !advice) return
+
+    const next: AdviceTurn[] = [...turns, { role: 'user', content: text }]
+    setTurns(next)
+    setQuestion('')
+    setBusy(true)
+    setError('')
+    try {
+      const res = await askAdviser({ endpoint, authToken, ruling, advice, followups: next })
+      setTurns([...next, { role: 'assistant', content: res.reply ?? '' }])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't work that one out.")
+      // Drop the unanswered question rather than stranding it above nothing.
+      setTurns(turns)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!advice) {
+    return (
+      <div className="tk-advice">
+        <button className="linklike" disabled={busy} onClick={firstLook}>
+          {busy ? 'Reading the rulebook…' : 'What should I do?'}
+        </button>
+        {error && <p className="error">{error}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="tk-advice">
+      <p className="tk-advice-head">{advice.headline}</p>
+      <p className="tk-advice-why">{advice.because}</p>
+
+      {/* The evidence, not decoration. "Fix the sheet" means nothing until you
+          can see the entry that already says it. */}
+      {advice.rulebook && (
+        <div className="tk-advice-quote">
+          <span className="tk-advice-label">The rulebook already says</span>
+          <p>{advice.rulebook}</p>
+        </div>
+      )}
+
+      {advice.draft && (
+        <div className="tk-advice-quote">
+          <span className="tk-advice-label">Suggested wording</span>
+          <p>{advice.draft}</p>
+        </div>
+      )}
+
+      {turns.map((turn, i) => (
+        <p key={i} className={`tk-advice-turn ${turn.role}`}>
+          {turn.content}
+        </p>
+      ))}
+
+      {error && <p className="error">{error}</p>}
+
+      {!busy && (
+        <textarea
+          rows={2}
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder={`Ask the ${adviser} about this`}
+          aria-label="Ask about this ruling"
+        />
+      )}
+
+      <button className="linklike" disabled={busy || !question.trim()} onClick={followUp}>
+        {busy ? 'Thinking…' : 'Ask'}
+      </button>
+    </div>
   )
 }

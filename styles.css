@@ -1012,6 +1012,71 @@ select:focus {
   border-color: var(--tk-ink, currentColor);
 }
 
+/* ── what to do about it ─────────────────────────────────────────────────
+ *
+ * Set apart from the question above it, because it is a different KIND of
+ * thing: everything above is what happened at the table, and this is somebody
+ * else's opinion about it. Indented against a rule rather than boxed — a box
+ * would sit at the same weight as the card and start competing with the
+ * question, which is still the thing worth reading first.
+ */
+.tk-advice {
+  margin-top: 0.7rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--tk-primary, var(--tk-line));
+}
+
+.tk-advice-head {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.tk-advice-why {
+  margin: 0.35rem 0 0;
+  color: var(--tk-muted);
+  line-height: 1.45;
+}
+
+/* The rulebook's own words, and the draft of words it hasn't got yet. Same
+ * treatment for both on purpose: each is a quotation of the rulebook, one from
+ * the version that exists and one from the version being proposed. */
+.tk-advice-quote {
+  margin-top: 0.55rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--tk-surface);
+  border: var(--tk-border-w) solid var(--tk-line);
+  border-radius: 8px;
+}
+
+.tk-advice-quote p {
+  margin: 0.2rem 0 0;
+  line-height: 1.45;
+}
+
+.tk-advice-label {
+  font-size: 0.72rem;
+  font-weight: var(--tk-chrome-weight);
+  text-transform: var(--tk-chrome-case);
+  letter-spacing: var(--tk-chrome-tracking);
+  color: var(--tk-muted);
+}
+
+.tk-advice-turn {
+  margin: 0.5rem 0 0;
+  line-height: 1.45;
+  color: var(--tk-muted);
+}
+
+.tk-advice-turn.user {
+  font-weight: 600;
+  color: inherit;
+}
+
+.tk-advice textarea {
+  margin-top: 0.5rem;
+}
+
 /* ── the score pad ───────────────────────────────────────────────────────
  *
  * One banked round at a time, with an arrow at each end. Every value comes

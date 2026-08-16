@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { RulingsList } from './triage.js'
 
@@ -189,5 +189,136 @@ describe('a question that has come up before', () => {
     }
     render(<RulingsList pb={pb} collection="heat_rulings" onClose={() => {}} />)
     expect(await screen.findByText('Can a person pass on the turn?')).toBeTruthy()
+  })
+})
+
+/**
+ * The advice, which exists because the three buttons above ask a question the
+ * person pressing them frequently can't answer. See `advice.ts`.
+ */
+describe('what to do about it', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function adviser(reply: any) {
+    const sent: any[] = []
+    vi.stubGlobal('fetch', async (_url: string, init: any) => {
+      sent.push(JSON.parse(init.body))
+      return { ok: true, json: async () => reply }
+    })
+    return sent
+  }
+
+  function advised(rows: any[] = [covered]) {
+    const { pb, updates } = store(rows)
+    render(
+      <RulingsList
+        pb={pb}
+        collection="heat_rulings"
+        onClose={() => {}}
+        adviceEndpoint="/api/triage"
+        authToken={() => 'host-token'}
+      />,
+    )
+    return updates
+  }
+
+  const sheet = {
+    advice: {
+      bucket: 'sheet',
+      headline: 'The rulebook covers this already.',
+      because: 'Passing is ruled out under How a turn works.',
+      rulebook: 'Every player plays exactly one card on their turn.',
+      draft: '',
+    },
+  }
+
+  it('is one tap, not something fired the moment the screen opens', async () => {
+    const sent = adviser(sheet)
+    advised()
+    await screen.findByText('Can a person pass on the turn?')
+    // ⚠️ This costs money per question. A list that advised itself on open
+    // would spend on every question anybody ever asked, every time it is read.
+    expect(sent).toHaveLength(0)
+    expect(screen.getByText('What should I do?')).toBeTruthy()
+  })
+
+  it('shows the recommendation, the reason, and the entry it points at', async () => {
+    adviser(sheet)
+    advised()
+    fireEvent.click(await screen.findByText('What should I do?'))
+
+    expect(await screen.findByText('The rulebook covers this already.')).toBeTruthy()
+    expect(screen.getByText(/Passing is ruled out/)).toBeTruthy()
+    // The evidence. "Fix the sheet" is unfollowable without it.
+    expect(screen.getByText('Every player plays exactly one card on their turn.')).toBeTruthy()
+  })
+
+  it('dresses the button it means, and leaves the others alone', async () => {
+    adviser(sheet)
+    advised()
+    fireEvent.click(await screen.findByText('What should I do?'))
+    await screen.findByText('The rulebook covers this already.')
+
+    expect(screen.getByText('Fix the sheet').className).toBe('btn')
+    expect(screen.getByText('Needs a rule').className).toBe('btn ghost')
+    expect(screen.getByText('Nothing to do').className).toBe('btn ghost')
+  })
+
+  it('still leaves the filing to a tap', async () => {
+    const sent = adviser(sheet)
+    const updates = advised()
+    fireEvent.click(await screen.findByText('What should I do?'))
+    await screen.findByText('The rulebook covers this already.')
+
+    // ⚠️ Advice that filed itself would be a classifier writing the rulebook.
+    expect(updates).toHaveLength(0)
+    expect(sent).toHaveLength(1)
+
+    fireEvent.click(screen.getByText('Fix the sheet'))
+    await waitFor(() => expect(updates).toHaveLength(1))
+    expect(updates[0]!.data.bucket).toBe('sheet')
+  })
+
+  it('carries the advice back when a follow-up is asked', async () => {
+    const sent = adviser(sheet)
+    advised()
+    fireEvent.click(await screen.findByText('What should I do?'))
+    await screen.findByText('The rulebook covers this already.')
+
+    vi.stubGlobal('fetch', async (_url: string, init: any) => {
+      sent.push(JSON.parse(init.body))
+      return { ok: true, json: async () => ({ reply: 'Because nobody scrolled that far.' }) }
+    })
+
+    fireEvent.change(screen.getByLabelText('Ask about this ruling'), {
+      target: { value: 'Why did they not find it?' },
+    })
+    fireEvent.click(screen.getByText('Ask'))
+
+    expect(await screen.findByText('Because nobody scrolled that far.')).toBeTruthy()
+    expect(sent[1].advice.bucket).toBe('sheet')
+    expect(sent[1].followups[0].content).toBe('Why did they not find it?')
+  })
+
+  it('says so when it cannot answer, and keeps the buttons usable', async () => {
+    vi.stubGlobal('fetch', async () => ({
+      ok: false,
+      json: async () => ({ error: 'The API key is being rejected.' }),
+    }))
+    const updates = advised()
+    fireEvent.click(await screen.findByText('What should I do?'))
+
+    expect(await screen.findByText('The API key is being rejected.')).toBeTruthy()
+    // The screen is whole without the advice — it always was.
+    fireEvent.click(screen.getByText('Nothing to do'))
+    await waitFor(() => expect(updates).toHaveLength(1))
+  })
+
+  it('shows nothing to ask when the app has no adviser endpoint', async () => {
+    list([covered])
+    await screen.findByText('Can a person pass on the turn?')
+    expect(screen.queryByText('What should I do?')).toBeNull()
   })
 })
