@@ -143,6 +143,22 @@ one screen that must work before anyone can find out whether anything else does.
       a deploy mid-entry overwrote a count that was already in.
 - [ ] Flex gotcha: a note nested inside a name box runs into the name, because
       the name box is a flex **item**, not a container. — **Oh Hell.**
+- [ ] ⚠️ **Every text input is `font-size: 16px` or larger.** iOS Safari zooms
+      the whole page in when you focus anything smaller, and there is no way to
+      decline it except by being 16px. An input inheriting a label's `0.85rem`
+      is ~13.6px and will do it. **Do not fix this with `maximum-scale=1` or
+      `user-scalable=no`** — that takes pinch-zoom away from everybody for the
+      whole app, which at a table in bad light is the opposite of the point.
+      — **10,000**, on an autofocused "add someone without a phone" field.
+- [ ] ⚠️ **Copy `src/styles.test.ts` in** — `classCoverage` from
+      `table-kit/lint`, pointed at BOTH your source and
+      `node_modules/table-kit/dist`, against BOTH stylesheets.
+      **The classes an app forgets are the ones the KIT renders and leaves it to
+      style**, so nothing in your own files mentions them and no amount of
+      reading your code finds them. — **Oh Hell**, whose game-length picker
+      shipped invisible; **10,000**, which then shipped without the guard and
+      had seven unstyled classes on the rules sheet, including the whole Ask
+      box. ⚠️ `used` in the return is a COUNT, not an array.
 
 ---
 
