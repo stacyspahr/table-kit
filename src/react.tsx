@@ -521,7 +521,18 @@ export function InviteHost({
     setError('')
     const clean = email.trim().toLowerCase()
     const text = (inviteText ?? defaultText)(clean)
-    const createP = pb.collection(collection).create({ email: clean, role: 'editor' })
+    // ⚠️ `host`, NOT `editor`. This said editor for months, so every person
+    // invited from inside a scorer landed on the TOP rung — Full — which is
+    // more than the person inviting them may even hold. Host is what the copy
+    // above this form actually promises ("they'll be able to run their own
+    // games"); Full is the rulebook maintainer and is granted by hand in
+    // Doorman.
+    //
+    // ⚠️ Cosmetic on its own, and known to be. `role` is an ordinary field on
+    // the invite record, so anything with a console can still write `editor`
+    // here. The LOCK is the ceiling in each app's `*_invites.pb.js` hook, which
+    // grants host whatever the record says. Both halves, or neither counts.
+    const createP = pb.collection(collection).create({ email: clean, role: 'host' })
     // See the warning above: share BEFORE awaiting the save.
     try {
       if (navigator.share) await navigator.share({ title: appName, text, url })

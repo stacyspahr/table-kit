@@ -297,6 +297,26 @@ describe('inviting a host', () => {
     await waitFor(() => expect(screen.getByText('friend@example.com')).toBeTruthy())
   })
 
+  /**
+   * ⚠️ A PRIVILEGE BOUNDARY, not a detail. This sent `editor` — Full — for
+   * months, so anybody invited from inside a scorer landed on the top rung,
+   * above the person who invited them. The hooks cap it server-side too; this
+   * asserts the half that lives here, so a future edit to the create call has
+   * to walk past a failing test.
+   */
+  it('invites at host, never at Full', async () => {
+    const { pb, calls } = fakePb()
+    render(<InviteHost pb={pb} {...props} />)
+    fireEvent.click(screen.getByText('Invite someone to host'))
+    fireEvent.change(screen.getByPlaceholderText('them@email.com'), {
+      target: { value: 'a@b.com' },
+    })
+    fireEvent.click(screen.getByText('Create invite & share'))
+    await waitFor(() => expect(calls.some((c) => c.method === 'create')).toBe(true))
+    const created = calls.find((c) => c.method === 'create')
+    expect(created?.arg).toEqual({ email: 'a@b.com', role: 'host' })
+  })
+
   it('falls back to the clipboard where there is no share sheet', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     stub('clipboard', { writeText })
